@@ -171,7 +171,7 @@
     // They must exist in ALL_COLORS above.
     const LIVE_COLOR_IDS = [
       "vermillion",
-      "parmesan"
+      "parmesan",
       "steel blue",
       "purple plum",
       "obsidian",
@@ -204,17 +204,10 @@
     // pixels is 308 entries (22*14), each 0..7
     const pixels = new Uint8Array(GRID_W * GRID_H);
 
-    // We want the background to be WHITE by default.
-    // Find the live palette index of "white" (or #ffffff).
-    function getWhiteIndexOrFallback() {
-      const idx = LIVE_COLORS.findIndex(c =>
-        c.id === "white" || c.hex.toLowerCase() === "#ffffff"
-      );
-      return idx >= 0 ? idx : 0;
-    }
-
-    const BG_INDEX = getWhiteIndexOrFallback();
-    pixels.fill(BG_INDEX);
+    // Background is always white, independent of the palette.
+    // -1 means "blank / white cell".
+    const EMPTY = -1;
+    pixels.fill(EMPTY);
 
     /**********************************************************************
      * 3) DOM / Canvas setup (including crisp rendering on high-DPI screens)
@@ -295,7 +288,10 @@
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
           const idx = y * GRID_W + x;
-          const colorHex = LIVE_COLORS[pixels[idx]].hex;
+          const colorHex =   
+            pixels[idx] === EMPTY
+            ? "#ffffff"
+            : LIVE_COLORS[pixels[idx]].hex;
 
           ctx.fillStyle = colorHex;
           ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -384,7 +380,7 @@
 
     // Clear = reset to white background
     clearBtn.addEventListener("click", () => {
-      pixels.fill(BG_INDEX);
+      pixels.fill(EMPTY);
       drawAll();
     });
 
@@ -405,7 +401,7 @@
       const exportCtx = exportCanvas.getContext("2d");
 
       // Background
-      exportCtx.fillStyle = LIVE_COLORS[BG_INDEX].hex;
+      exportCtx.fillStyle = "#ffffff";
       exportCtx.fillRect(0, 0, outW, outH);
 
       // Pixels (no grid)
@@ -432,5 +428,6 @@
   </script>
 </body>
 </html>
+
 
 
