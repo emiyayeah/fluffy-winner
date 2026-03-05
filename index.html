@@ -281,7 +281,7 @@
     // Draw the mural pixels (no grid)
     function drawPixelsOnly() {
       // Fill background (this ensures "white" is actually painted, not transparent)
-      ctx.fillStyle = LIVE_COLORS[BG_INDEX].hex;
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, cssWidth, cssHeight);
 
       // Draw each cell as a big square
@@ -408,7 +408,10 @@
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
           const idx = y * GRID_W + x;
-          exportCtx.fillStyle = LIVE_COLORS[pixels[idx]].hex;
+          exportCtx.fillStyle =
+            pixels[idx] === EMPTY
+              ? "#ffffff"
+              : LIVE_COLORS[pixels[idx]].hex;
           exportCtx.fillRect(x * exportScale, y * exportScale, exportScale, exportScale);
         }
       }
@@ -428,6 +431,7 @@
   </script>
 </body>
 </html>
+
 
 
 
