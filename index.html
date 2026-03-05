@@ -202,7 +202,7 @@
     let selected = 0;
 
     // pixels is 308 entries (22*14), each 0..7
-    const pixels = new Uint8Array(GRID_W * GRID_H);
+    const pixels = new Int16Array(GRID_W * GRID_H);
 
     // Background is always white, independent of the palette.
     // -1 means "blank / white cell".
@@ -431,6 +431,7 @@
   </script>
 </body>
 </html>
+
 
 
 
