@@ -179,7 +179,7 @@
       "aquamarine",
       "dusty rose",
     ];
-
+    
     // Turn ALL_COLORS into a map (id -> hex) for easy lookup
     const allById = new Map(ALL_COLORS.map(c => [c.id, c.hex]));
 
@@ -194,12 +194,87 @@
       return { id, hex };
     });
 
+/**********************************************************************
+ * Random filename generator
+ **********************************************************************/
+
+const ADJECTIVES = [
+"wiggly",
+  "sparkly",
+  "fuzzy",
+  "tiny",
+  "confetti",
+  "mossy",
+  "velvety",
+"dappled",
+  "bouncy",
+  "shimmering",
+  "glittery",
+  "speckled",
+  "squishable",
+  "poofy",
+  "freckled",
+  "swishy",
+"puffy",
+"glossy",
+"shiny",
+"radiant",
+"woolly","buttered",
+"lumpy",
+"victorious","defeated","euphoric","boastful","cranky","overpraised","long-lost","self-important","unemployed"
+];
+
+const NOUNS = [
+"artifact","fungus",
+"dumpling","nugget","muffin","pasta","hug","receptacle","treasure","doodad",
+"scream","keepsake",
+"curiosity",
+"contraption",
+"mechanism",
+"device",
+"shrimp",
+"pudding",
+"biscuit",
+"croissant",
+"noodle",
+"casserole",
+"hot-dog","giraffe","shawarma","bassochord",
+  "stringworm","kitty-cat","puppy-dog","floof","cupcake","bnuy","creature","invertebrate","carnivore","biped","specter","apparition","thumbs-up","no-thanks","cartwheel","apology","cackle","applause","occupant",
+];
+
+/* Rare extra word that appears occasionally */
+const FLOURISHES = [
+"delight",
+"surprise",
+"miracle",
+"spectacle",
+"masterpiece",
+"catastrophe",
+"calamity",
+"tragedy",
+"meltdown",
+  "disaster"
+
+];
+
+function randomName() {
+  const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+
+  let name = `${a}-${n}`;
+
+  /* ~10% chance of adding a third whimsical word */
+  if (Math.random() < 0.1) {
+    const f = FLOURISHES[Math.floor(Math.random() * FLOURISHES.length)];
+    name += `-${f}`;
+  }
+
+  return name;
+}
+    
     /**********************************************************************
      * 2) State: mural data + selected color
      **********************************************************************/
-
-    // selected is 0..7 (index into LIVE_COLORS)
-    let selected = 0;
 
     // pixels is 308 entries (22*14), each 0..7
     const pixels = new Int16Array(GRID_W * GRID_H);
@@ -208,6 +283,13 @@
     // -1 means "blank / white cell".
     const EMPTY = -1;
     pixels.fill(EMPTY);
+
+    // We'll use the same value for the "white swatch" selection.
+    // If selectedColor === ERASE, we paint EMPTY (-1) into the grid.
+    const ERASE = EMPTY;
+
+    // selectedColor can be 0..7 (weekly palette indices) OR -1 (erase/white)
+    let selectedColor = 0;
 
     /**********************************************************************
      * 3) DOM / Canvas setup (including crisp rendering on high-DPI screens)
@@ -244,35 +326,51 @@
      * 4) Palette UI
      **********************************************************************/
 
-    function renderPalette() {
-      paletteEl.innerHTML = "";
+function renderPalette() {
+  paletteEl.innerHTML = "";
 
-      LIVE_COLORS.forEach((c, i) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "swatch";
-        b.style.background = c.hex;
-        b.style.color = c.hex; // used for selection ring
-        b.setAttribute("aria-pressed", String(i === selected));
-        b.title = c.id;
+  // Build a single list of swatches:
+  // - the 8 live weekly colors, then
+  // - one permanent "white/erase" at the end
+  const swatches = [
+    ...LIVE_COLORS.map((c, i) => ({
+      id: c.id,
+      hex: c.hex,
+      value: i,        // clicking selects palette index 0..7
+    })),
+    {
+      id: "white",
+      hex: "#ffffff",
+      value: ERASE,    // clicking selects -1 (erase)
+    },
+  ];
 
-        b.addEventListener("click", () => {
-          selected = i;
-          [...paletteEl.children].forEach((child, idx) => {
-            child.setAttribute("aria-pressed", String(idx === selected));
-          });
-        });
+  swatches.forEach((s) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "swatch";
+    b.style.background = s.hex;
+    b.style.color = s.hex; // used for selection ring
 
-        paletteEl.appendChild(b);
+    // Show name on hover
+    b.title = s.id;
+
+    // Accessible pressed state + visual ring
+    b.setAttribute("aria-pressed", String(s.value === selectedColor));
+
+    b.addEventListener("click", () => {
+      selectedColor = s.value;
+
+      // Update aria-pressed for every swatch button
+      [...paletteEl.children].forEach((child, idx) => {
+        const v = swatches[idx].value;
+        child.setAttribute("aria-pressed", String(v === selectedColor));
       });
+    });
 
-      paletteHint.innerHTML = `
-        <strong>Palette notes:</strong>
-        Your 8 live swatches are controlled by <code>LIVE_COLOR_IDS</code>.
-        You currently have <code>${ALL_COLORS.length}</code> total available colors in <code>ALL_COLORS</code>.
-        To rotate weekly, replace the 8 IDs in <code>LIVE_COLOR_IDS</code> with any 8 IDs from <code>ALL_COLORS</code>.
-      `;
-    }
+    paletteEl.appendChild(b);
+  });
+}
 
     /**********************************************************************
      * 5) Drawing (editor view)
@@ -346,10 +444,12 @@
       return { x, y };
     }
 
-    function setPixel(x, y, colorIndex) {
-      if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
-      pixels[y * GRID_W + x] = colorIndex;
-    }
+function setPixel(x, y, colorIndex) {
+  if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
+
+  // If they selected the white swatch, store EMPTY (-1).
+  pixels[y * GRID_W + x] = (colorIndex === ERASE) ? EMPTY : colorIndex;
+}
 
     let painting = false;
 
@@ -358,7 +458,7 @@
       canvas.setPointerCapture(evt.pointerId);
 
       const { x, y } = pointerToCell(evt);
-      setPixel(x, y, selected);
+      setPixel(x, y, selectedColor);
       drawAll();
     });
 
@@ -366,7 +466,7 @@
       if (!painting) return;
 
       const { x, y } = pointerToCell(evt);
-      setPixel(x, y, selected);
+      setPixel(x, y, selectedColor);
       drawAll();
     });
 
@@ -418,7 +518,7 @@
 
       // Trigger download
       const link = document.createElement("a");
-      link.download = "masterpiece.png";
+     link.download = randomName() + ".png";
       link.href = exportCanvas.toDataURL("image/png");
       link.click();
     });
@@ -427,10 +527,12 @@
      * 8) Init
      **********************************************************************/
     renderPalette();
+    selectedColor = 0;
     drawAll();
   </script>
 </body>
 </html>
+
 
 
 
