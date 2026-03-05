@@ -48,6 +48,7 @@
   <div class="row">
     <div class="palette" id="palette" aria-label="Color palette"></div>
     <button id="clearBtn" type="button">Clear</button>
+    <button id="exportBtn" type="button">Export PNG</button>
   </div>
 
   <canvas id="c" width="22" height="14" aria-label="Pixel grid"></canvas>
@@ -76,12 +77,38 @@
     // --- State ---
     let selected = 0;
     const pixels = new Uint8Array(GRID_W * GRID_H); // stores color indices 0..7
+    let hoverX = -1;
+    let hoverY = -1;
 
     // --- DOM ---
     const canvas = document.getElementById("c");
     const ctx = canvas.getContext("2d", { alpha: false });
     const paletteEl = document.getElementById("palette");
     const clearBtn = document.getElementById("clearBtn");
+
+    // --- EXPORT PNG ---
+    const exportBtn = document.getElementById("exportBtn");
+    exportBtn.addEventListener("click", () => {
+    const scale = 20; // makes the export larger so pixels are visible
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = GRID_W * scale;
+    exportCanvas.height = GRID_H * scale;
+
+    const exportCtx = exportCanvas.getContext("2d");
+
+    for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      const idx = y * GRID_W + x;
+      exportCtx.fillStyle = COLORS[pixels[idx]];
+      exportCtx.fillRect(x * scale, y * scale, scale, scale);
+    }
+  }
+
+  const link = document.createElement("a");
+  link.download = "pixel-art.png";
+  link.href = exportCanvas.toDataURL("image/png");
+  link.click();
+});
 
     // Make the tiny canvas show up big (without changing its internal resolution)
     canvas.style.width = (GRID_W * SCALE) + "px";
@@ -109,6 +136,28 @@
       });
     }
 
+    // ---  Pixel Grid ---
+    function drawGridLines() {
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.lineWidth = 0.05;
+
+  ctx.beginPath();
+
+  // vertical lines
+  for (let x = 0; x <= GRID_W; x++) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, GRID_H);
+  }
+
+  // horizontal lines
+  for (let y = 0; y <= GRID_H; y++) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(GRID_W, y);
+  }
+
+  ctx.stroke();
+}
+    
     // --- Drawing ---
     function drawAll() {
       // Paint each grid cell directly onto the 22×14 canvas
@@ -119,6 +168,7 @@
           ctx.fillRect(x, y, 1, 1);
         }
       }
+      drawGridLines();
     }
 
     function setPixel(x, y, colorIndex) {
@@ -129,6 +179,8 @@
       // draw just the changed pixel
       ctx.fillStyle = COLORS[colorIndex];
       ctx.fillRect(x, y, 1, 1);
+      drawGridLines();
+      drawHover();
     }
 
     function canvasToGridCoords(evt) {
@@ -139,6 +191,14 @@
       const y = Math.floor((cy / rect.height) * GRID_H);
       return { x, y };
     }
+
+    function drawHover() {
+  if (hoverX < 0 || hoverY < 0) return;
+
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.lineWidth = 0.1;
+  ctx.strokeRect(hoverX, hoverY, 1, 1);
+}
 
     // --- Input: pointer events for mouse + touch ---
     let painting = false;
@@ -151,14 +211,26 @@
     });
 
     canvas.addEventListener("pointermove", (evt) => {
-      if (!painting) return;
       const { x, y } = canvasToGridCoords(evt);
-      setPixel(x, y, selected);
+
+      hoverX = x;
+      hoverY = y;
+
+      if (painting) {
+        setPixel(x, y, selected);
+      }
+
+      drawAll();
     });
 
     canvas.addEventListener("pointerup", () => { painting = false; });
     canvas.addEventListener("pointercancel", () => { painting = false; });
-    canvas.addEventListener("pointerleave", () => { painting = false; });
+    canvas.addEventListener("pointerleave", () => {
+      hoverX = -1;
+      hoverY = -1;
+      painting = false;
+      drawAll();
+    });
 
     clearBtn.addEventListener("click", () => {
       pixels.fill(0);
@@ -170,4 +242,5 @@
     drawAll();
   </script>
 </body>
+
 </html>
