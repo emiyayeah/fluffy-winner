@@ -4,8 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>22×14 Pixel Painter</title>
+
   <style>
     :root { color-scheme: light dark; }
+
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       margin: 24px;
@@ -13,234 +15,434 @@
       gap: 16px;
       justify-items: start;
     }
+
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .palette { display: flex; gap: 8px; align-items: center; }
+
+    .paletteWrap { display: grid; gap: 6px; }
+    .palette { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
     .swatch {
-      width: 28px; height: 28px; border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       border: 2px solid rgba(0,0,0,0.25);
       cursor: pointer;
       position: relative;
     }
-    .swatch[aria-pressed="true"]::after{
-      content:"";
-      position:absolute; inset:-4px;
+
+    /* Visual indicator for the currently selected color */
+    .swatch[aria-pressed="true"]::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
       border: 2px solid currentColor;
       border-radius: 12px;
     }
+
     button {
-      padding: 8px 12px; border-radius: 10px;
+      padding: 8px 12px;
+      border-radius: 10px;
       border: 1px solid rgba(0,0,0,0.25);
       background: transparent;
       cursor: pointer;
     }
+
+    /* Canvas has a visible border and rounded corners. */
     canvas {
       border-radius: 14px;
       border: 1px solid rgba(0,0,0,0.25);
-      touch-action: none; /* lets pointer events work nicely on mobile */
-      image-rendering: pixelated;
+      touch-action: none; /* helps pointer events on mobile */
+      background: #fff;   /* just in case; we also paint a white background in JS */
+      display: block;
     }
-    .hint { opacity: 0.75; font-size: 14px; }
+
+    .hint {
+      opacity: 0.75;
+      font-size: 14px;
+      line-height: 1.35;
+      max-width: 80ch;
+    }
+
+#paletteHint {
+  display: none;
+}
+
+    code {
+      padding: 0 6px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.06);
+    }
   </style>
 </head>
+
 <body>
   <h1 style="margin:0;">22×14 Pixel Painter</h1>
 
   <div class="row">
-    <div class="palette" id="palette" aria-label="Color palette"></div>
+    <div class="paletteWrap">
+      <div class="palette" id="palette" aria-label="Color palette"></div>
+      <div class="hint" id="paletteHint"></div>
+    </div>
+
     <button id="clearBtn" type="button">Clear</button>
     <button id="exportBtn" type="button">Export PNG</button>
   </div>
 
-  <canvas id="c" width="22" height="14" aria-label="Pixel grid"></canvas>
-  <div class="hint">Tip: click/tap to paint. Click-drag (or touch-drag) to paint continuously.</div>
+  <!-- NOTE:
+       We will set the canvas size in JS so it is "big" internally (not CSS-scaled).
+       That makes gridlines easy and prevents the gray/muted issue you saw. -->
+  <canvas id="c" aria-label="Pixel grid"></canvas>
+
+  <div class="hint">
+    Tip: click/tap to paint. Click-drag (or touch-drag) to paint continuously.
+    Export creates a clean PNG (no grid), scaled up so it’s readable.
+  </div>
 
   <script>
-    // --- Config ---
+    /**********************************************************************
+     * 0) What this tool does (high-level)
+     * --------------------------------------------------------------------
+     * - The mural is 22×14 "cells" (308 total).
+     * - We store the mural as an array of 308 numbers.
+     *   Each number is 0..7 (index into the LIVE palette of 8 colors).
+     *
+     * - We draw the mural to a canvas that is internally large:
+     *     (22 * CELL_SIZE) × (14 * CELL_SIZE)
+     *   So each mural cell is a big square on screen.
+     *
+     * - We draw faint gridlines ON TOP for editing.
+     * - Export draws onto a separate canvas WITHOUT gridlines.
+     **********************************************************************/
+
+    // --- MURAL SIZE (fixed) ---
     const GRID_W = 22;
     const GRID_H = 14;
 
-    // 8 provided colors (edit these however you like)
-    const COLORS = [
-      "#000000", // black
-      "#ffffff", // white
-      "#e63946", // red
-      "#f1fa8c", // yellow
-      "#2a9d8f", // teal
-      "#457b9d", // blue
-      "#a855f7", // purple
-      "#f4a261"  // orange
+    // --- EDITOR CELL SIZE (how big each pixel looks on screen) ---
+    // Increase for a larger editor; decrease for smaller.
+    const CELL_SIZE = 24;
+
+    /**********************************************************************
+     * 1) Colors: 30 total available, 8 live per week
+     * --------------------------------------------------------------------
+     * - Add/edit colors in ALL_COLORS (30+ options).
+     * - Choose which 8 are live this week using LIVE_COLOR_IDS.
+     *
+     * Weekly swap process:
+     *   1) Edit LIVE_COLOR_IDS to a different set of 8 IDs
+     *   2) Commit
+     *   3) Done
+     **********************************************************************/
+
+    const ALL_COLORS = [
+      // Neutrals
+      { id: "black",   hex: "#000000" },
+      { id: "white",   hex: "#ffffff" },
+      { id: "slate",   hex: "#1f2937" },
+      { id: "gray",    hex: "#6b7280" },
+      { id: "silver",  hex: "#d1d5db" },
+
+      // Reds / Oranges
+      { id: "red1",    hex: "#e63946" },
+      { id: "red2",    hex: "#b91c1c" },
+      { id: "coral",   hex: "#fb7185" },
+      { id: "orange1", hex: "#f4a261" },
+      { id: "orange2", hex: "#f97316" },
+
+      // Yellows
+      { id: "yellow1", hex: "#f1fa8c" },
+      { id: "yellow2", hex: "#facc15" },
+      { id: "gold",    hex: "#d97706" },
+
+      // Greens
+      { id: "green1",  hex: "#22c55e" },
+      { id: "green2",  hex: "#16a34a" },
+      { id: "moss",    hex: "#2f6f55" },
+      { id: "mint",    hex: "#a7f3d0" },
+
+      // Teals / Blues
+      { id: "teal1",   hex: "#2a9d8f" },
+      { id: "teal2",   hex: "#14b8a6" },
+      { id: "sky",     hex: "#93c5fd" },
+      { id: "blue1",   hex: "#457b9d" },
+      { id: "blue2",   hex: "#2563eb" },
+      { id: "navy",    hex: "#0b132b" },
+
+      // Purples / Pinks
+      { id: "purple1", hex: "#a855f7" },
+      { id: "purple2", hex: "#7c3aed" },
+      { id: "lavender",hex: "#c4b5fd" },
+      { id: "pink1",   hex: "#ec4899" },
+      { id: "rose",    hex: "#fda4af" },
+
+      // Earthy / Extras
+      { id: "brown1",  hex: "#7c4a2d" },
+      { id: "sand",    hex: "#e9d8a6" },
+      { id: "peach",   hex: "#ffb4a2" },
     ];
 
-    // Display scale: how big each pixel appears (in CSS pixels)
-    const SCALE = 24;
+    // 👇 Change these 8 IDs weekly.
+    // They must exist in ALL_COLORS above.
+    const LIVE_COLOR_IDS = [
+      "black",
+      "white",
+      "red1",
+      "yellow1",
+      "teal1",
+      "blue1",
+      "purple1",
+      "orange1",
+    ];
 
-    // --- State ---
+    // Turn ALL_COLORS into a map (id -> hex) for easy lookup
+    const allById = new Map(ALL_COLORS.map(c => [c.id, c.hex]));
+
+    // Build the live palette (exactly 8 colors, in your chosen order)
+    const LIVE_COLORS = LIVE_COLOR_IDS.map(id => {
+      const hex = allById.get(id);
+      if (!hex) {
+        // If you typo a color ID, we warn and use a loud fallback
+        console.warn(`LIVE_COLOR_IDS includes "${id}" but it isn't in ALL_COLORS.`);
+        return { id, hex: "#ff00ff" };
+      }
+      return { id, hex };
+    });
+
+    /**********************************************************************
+     * 2) State: mural data + selected color
+     **********************************************************************/
+
+    // selected is 0..7 (index into LIVE_COLORS)
     let selected = 0;
-    const pixels = new Uint8Array(GRID_W * GRID_H); // stores color indices 0..7
-    let hoverX = -1;
-    let hoverY = -1;
 
-    // --- DOM ---
+    // pixels is 308 entries (22*14), each 0..7
+    const pixels = new Uint8Array(GRID_W * GRID_H);
+
+    // We want the background to be WHITE by default.
+    // Find the live palette index of "white" (or #ffffff).
+    function getWhiteIndexOrFallback() {
+      const idx = LIVE_COLORS.findIndex(c =>
+        c.id === "white" || c.hex.toLowerCase() === "#ffffff"
+      );
+      return idx >= 0 ? idx : 0;
+    }
+
+    const BG_INDEX = getWhiteIndexOrFallback();
+    pixels.fill(BG_INDEX);
+
+    /**********************************************************************
+     * 3) DOM / Canvas setup (including crisp rendering on high-DPI screens)
+     **********************************************************************/
+
     const canvas = document.getElementById("c");
     const ctx = canvas.getContext("2d", { alpha: false });
+
     const paletteEl = document.getElementById("palette");
+    const paletteHint = document.getElementById("paletteHint");
     const clearBtn = document.getElementById("clearBtn");
-
-    // --- EXPORT PNG ---
     const exportBtn = document.getElementById("exportBtn");
-    exportBtn.addEventListener("click", () => {
-    const scale = 20; // makes the export larger so pixels are visible
-    const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = GRID_W * scale;
-    exportCanvas.height = GRID_H * scale;
 
-    const exportCtx = exportCanvas.getContext("2d");
+    // We want the canvas to be exactly GRID_W * CELL_SIZE wide in "CSS pixels".
+    const cssWidth = GRID_W * CELL_SIZE;
+    const cssHeight = GRID_H * CELL_SIZE;
 
-    for (let y = 0; y < GRID_H; y++) {
-    for (let x = 0; x < GRID_W; x++) {
-      const idx = y * GRID_W + x;
-      exportCtx.fillStyle = COLORS[pixels[idx]];
-      exportCtx.fillRect(x * scale, y * scale, scale, scale);
-    }
-  }
+    // Device Pixel Ratio (retina screens, etc.). This makes the canvas sharp.
+    const dpr = window.devicePixelRatio || 1;
 
-  const link = document.createElement("a");
-  link.download = "pixel-art.png";
-  link.href = exportCanvas.toDataURL("image/png");
-  link.click();
-});
+    // Set canvas internal resolution (real pixels)
+    canvas.width = Math.floor(cssWidth * dpr);
+    canvas.height = Math.floor(cssHeight * dpr);
 
-    // Make the tiny canvas show up big (without changing its internal resolution)
-    canvas.style.width = (GRID_W * SCALE) + "px";
-    canvas.style.height = (GRID_H * SCALE) + "px";
+    // Set canvas display size (CSS pixels)
+    canvas.style.width = cssWidth + "px";
+    canvas.style.height = cssHeight + "px";
 
-    // --- Palette UI ---
+    // Tell the context: "treat my drawing units as CSS pixels"
+    // Now when we draw a 24×24 square, it looks correct on all screens.
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    /**********************************************************************
+     * 4) Palette UI
+     **********************************************************************/
+
     function renderPalette() {
       paletteEl.innerHTML = "";
-      COLORS.forEach((hex, i) => {
+
+      LIVE_COLORS.forEach((c, i) => {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "swatch";
-        b.style.background = hex;
-        b.style.color = hex; // used for selection outline
+        b.style.background = c.hex;
+        b.style.color = c.hex; // used for selection ring
         b.setAttribute("aria-pressed", String(i === selected));
-        b.title = `Color ${i + 1}: ${hex}`;
+        b.title = `${c.id} (${c.hex})`;
+
         b.addEventListener("click", () => {
           selected = i;
-          // update aria-pressed
           [...paletteEl.children].forEach((child, idx) => {
             child.setAttribute("aria-pressed", String(idx === selected));
           });
         });
+
         paletteEl.appendChild(b);
       });
+
+      paletteHint.innerHTML = `
+        <strong>Palette notes:</strong>
+        Your 8 live swatches are controlled by <code>LIVE_COLOR_IDS</code>.
+        You currently have <code>${ALL_COLORS.length}</code> total available colors in <code>ALL_COLORS</code>.
+        To rotate weekly, replace the 8 IDs in <code>LIVE_COLOR_IDS</code> with any 8 IDs from <code>ALL_COLORS</code>.
+      `;
     }
 
-    // ---  Pixel Grid ---
-    function drawGridLines() {
-  ctx.strokeStyle = "rgba(0,0,0,0.25)";
-  ctx.lineWidth = 0.05;
+    /**********************************************************************
+     * 5) Drawing (editor view)
+     **********************************************************************/
 
-  ctx.beginPath();
+    // Draw the mural pixels (no grid)
+    function drawPixelsOnly() {
+      // Fill background (this ensures "white" is actually painted, not transparent)
+      ctx.fillStyle = LIVE_COLORS[BG_INDEX].hex;
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
 
-  // vertical lines
-  for (let x = 0; x <= GRID_W; x++) {
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, GRID_H);
-  }
-
-  // horizontal lines
-  for (let y = 0; y <= GRID_H; y++) {
-    ctx.moveTo(0, y);
-    ctx.lineTo(GRID_W, y);
-  }
-
-  ctx.stroke();
-}
-    
-    // --- Drawing ---
-    function drawAll() {
-      // Paint each grid cell directly onto the 22×14 canvas
+      // Draw each cell as a big square
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
           const idx = y * GRID_W + x;
-          ctx.fillStyle = COLORS[pixels[idx]];
-          ctx.fillRect(x, y, 1, 1);
+          const colorHex = LIVE_COLORS[pixels[idx]].hex;
+
+          ctx.fillStyle = colorHex;
+          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         }
       }
+    }
+
+    // Draw faint grid lines over the mural (editor-only)
+    function drawGridLines() {
+      ctx.save();
+      ctx.strokeStyle = "rgba(0,0,0,0.12)"; // faint on white
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+
+      // Vertical grid lines
+      for (let x = 0; x <= GRID_W; x++) {
+        const px = x * CELL_SIZE + 0.5; // +0.5 makes 1px lines crisp
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, cssHeight);
+      }
+
+      // Horizontal grid lines
+      for (let y = 0; y <= GRID_H; y++) {
+        const py = y * CELL_SIZE + 0.5;
+        ctx.moveTo(0, py);
+        ctx.lineTo(cssWidth, py);
+      }
+
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Full redraw (pixels + grid overlay)
+    function drawAll() {
+      drawPixelsOnly();
       drawGridLines();
+    }
+
+    /**********************************************************************
+     * 6) Input (paint on click-drag)
+     **********************************************************************/
+
+    // Convert pointer location -> which grid cell?
+    function pointerToCell(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const cx = evt.clientX - rect.left;
+      const cy = evt.clientY - rect.top;
+
+      const x = Math.floor(cx / CELL_SIZE);
+      const y = Math.floor(cy / CELL_SIZE);
+      return { x, y };
     }
 
     function setPixel(x, y, colorIndex) {
       if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
-      const idx = y * GRID_W + x;
-      if (pixels[idx] === colorIndex) return;
-      pixels[idx] = colorIndex;
-      // draw just the changed pixel
-      ctx.fillStyle = COLORS[colorIndex];
-      ctx.fillRect(x, y, 1, 1);
-      drawGridLines();
-      drawHover();
+      pixels[y * GRID_W + x] = colorIndex;
     }
 
-    function canvasToGridCoords(evt) {
-      const rect = canvas.getBoundingClientRect();
-      const cx = evt.clientX - rect.left;
-      const cy = evt.clientY - rect.top;
-      const x = Math.floor((cx / rect.width) * GRID_W);
-      const y = Math.floor((cy / rect.height) * GRID_H);
-      return { x, y };
-    }
-
-    function drawHover() {
-  if (hoverX < 0 || hoverY < 0) return;
-
-  ctx.strokeStyle = "rgba(0,0,0,0.6)";
-  ctx.lineWidth = 0.1;
-  ctx.strokeRect(hoverX, hoverY, 1, 1);
-}
-
-    // --- Input: pointer events for mouse + touch ---
     let painting = false;
 
     canvas.addEventListener("pointerdown", (evt) => {
       painting = true;
       canvas.setPointerCapture(evt.pointerId);
-      const { x, y } = canvasToGridCoords(evt);
+
+      const { x, y } = pointerToCell(evt);
       setPixel(x, y, selected);
+      drawAll();
     });
 
     canvas.addEventListener("pointermove", (evt) => {
-      const { x, y } = canvasToGridCoords(evt);
+      if (!painting) return;
 
-      hoverX = x;
-      hoverY = y;
-
-      if (painting) {
-        setPixel(x, y, selected);
-      }
-
+      const { x, y } = pointerToCell(evt);
+      setPixel(x, y, selected);
       drawAll();
     });
 
     canvas.addEventListener("pointerup", () => { painting = false; });
     canvas.addEventListener("pointercancel", () => { painting = false; });
-    canvas.addEventListener("pointerleave", () => {
-      hoverX = -1;
-      hoverY = -1;
-      painting = false;
-      drawAll();
-    });
+    canvas.addEventListener("pointerleave", () => { painting = false; });
 
+    /**********************************************************************
+     * 7) Buttons
+     **********************************************************************/
+
+    // Clear = reset to white background
     clearBtn.addEventListener("click", () => {
-      pixels.fill(0);
+      pixels.fill(BG_INDEX);
       drawAll();
     });
 
-    // Init
+    // Export PNG:
+    // - We draw the mural to an offscreen canvas.
+    // - We do NOT draw the grid.
+    // - We scale up so it’s readable.
+    exportBtn.addEventListener("click", () => {
+      const exportScale = 20; // size of each cell in the exported PNG
+
+      const outW = GRID_W * exportScale;
+      const outH = GRID_H * exportScale;
+
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = outW;
+      exportCanvas.height = outH;
+
+      const exportCtx = exportCanvas.getContext("2d");
+
+      // Background
+      exportCtx.fillStyle = LIVE_COLORS[BG_INDEX].hex;
+      exportCtx.fillRect(0, 0, outW, outH);
+
+      // Pixels (no grid)
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          const idx = y * GRID_W + x;
+          exportCtx.fillStyle = LIVE_COLORS[pixels[idx]].hex;
+          exportCtx.fillRect(x * exportScale, y * exportScale, exportScale, exportScale);
+        }
+      }
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.download = "pixel-art.png";
+      link.href = exportCanvas.toDataURL("image/png");
+      link.click();
+    });
+
+    /**********************************************************************
+     * 8) Init
+     **********************************************************************/
     renderPalette();
     drawAll();
   </script>
 </body>
-
 </html>
