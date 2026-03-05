@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>22×14 Pixel Painter</title>
+  <title>Waystation Mural Pixel Painter</title>
 
   <style>
     :root { color-scheme: light dark; }
@@ -135,63 +135,49 @@
      **********************************************************************/
 
     const ALL_COLORS = [
-      // Neutrals
-      { id: "black",   hex: "#000000" },
-      { id: "white",   hex: "#ffffff" },
-      { id: "slate",   hex: "#1f2937" },
-      { id: "gray",    hex: "#6b7280" },
-      { id: "silver",  hex: "#d1d5db" },
-
-      // Reds / Oranges
-      { id: "red1",    hex: "#e63946" },
-      { id: "red2",    hex: "#b91c1c" },
-      { id: "coral",   hex: "#fb7185" },
-      { id: "orange1", hex: "#f4a261" },
-      { id: "orange2", hex: "#f97316" },
-
-      // Yellows
-      { id: "yellow1", hex: "#f1fa8c" },
-      { id: "yellow2", hex: "#facc15" },
-      { id: "gold",    hex: "#d97706" },
-
-      // Greens
-      { id: "green1",  hex: "#22c55e" },
-      { id: "green2",  hex: "#16a34a" },
-      { id: "moss",    hex: "#2f6f55" },
-      { id: "mint",    hex: "#a7f3d0" },
-
-      // Teals / Blues
-      { id: "teal1",   hex: "#2a9d8f" },
-      { id: "teal2",   hex: "#14b8a6" },
-      { id: "sky",     hex: "#93c5fd" },
-      { id: "blue1",   hex: "#457b9d" },
-      { id: "blue2",   hex: "#2563eb" },
-      { id: "navy",    hex: "#0b132b" },
-
-      // Purples / Pinks
-      { id: "purple1", hex: "#a855f7" },
-      { id: "purple2", hex: "#7c3aed" },
-      { id: "lavender",hex: "#c4b5fd" },
-      { id: "pink1",   hex: "#ec4899" },
-      { id: "rose",    hex: "#fda4af" },
-
-      // Earthy / Extras
-      { id: "brown1",  hex: "#7c4a2d" },
-      { id: "sand",    hex: "#e9d8a6" },
-      { id: "peach",   hex: "#ffb4a2" },
+      { id: "alien green", hex: "#13ff80" },
+      { id: "apricot", hex: "#ffc582" },
+      { id: "aquamarine", hex: "#00eabf" },
+      { id: "baby blue", hex: "#a8f9f9" },
+      { id: "buttermilk", hex: "#ebffff" },
+      { id: "camel", hex: "#df9d69" },
+      { id: "chestnut", hex: "#90513e" },
+      { id: "cornflower blue", hex: "#559af9" },
+      { id: "dove grey", hex: "#dbeefd" },
+      { id: "dusty rose", hex: "#e96fa2" },
+      { id: "honey mustard", hex: "#fee594" },
+      { id: "indigo", hex: "#3f3862" },
+      { id: "intestines pink", hex: "#ff989f" },
+      { id: "mulberry", hex: "#8c4371" },
+      { id: "murky water", hex: "#3f617c" },
+      { id: "obsidian", hex: "#32292f" },
+      { id: "parmesan", hex: "#ffffd1" },
+      { id: "peach cream", hex: "#ffc5b7" },
+      { id: "pebble grey", hex: "#a2aac0" },
+      { id: "purple plum", hex: "#70406f" },
+      { id: "raspberry", hex: "#cf335a" },
+      { id: "salted caramel", hex: "#b67150" },
+      { id: "shark grey", hex: "#787ca2" },
+      { id: "sky blue", hex: "#5ae8fe" },
+      { id: "slate", hex: "#5b5a71" },
+      { id: "steel blue", hex: "#4c64ae" },
+      { id: "teal", hex: "#259ebd" },
+      { id: "thangerine", hex: "#ff8e3f" },
+      { id: "thistle", hex: "#bd4ca4" },
+      { id: "vermillion", hex: "#ff3e3a" },
     ];
 
     // 👇 Change these 8 IDs weekly.
     // They must exist in ALL_COLORS above.
     const LIVE_COLOR_IDS = [
-      "black",
-      "white",
-      "red1",
-      "yellow1",
-      "teal1",
-      "blue1",
-      "purple1",
-      "orange1",
+      "vermillion",
+      "parmesan"
+      "steel blue",
+      "purple plum",
+      "obsidian",
+      "apricot",
+      "aquamarine",
+      "dusty rose",
     ];
 
     // Turn ALL_COLORS into a map (id -> hex) for easy lookup
@@ -275,7 +261,7 @@
         b.style.background = c.hex;
         b.style.color = c.hex; // used for selection ring
         b.setAttribute("aria-pressed", String(i === selected));
-        b.title = `${c.id} (${c.hex})`;
+        b.title = c.id;
 
         b.addEventListener("click", () => {
           selected = i;
@@ -446,3 +432,4 @@
   </script>
 </body>
 </html>
+
