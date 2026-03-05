@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>22×14 Pixel Painter</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin: 24px;
+      display: grid;
+      gap: 16px;
+      justify-items: start;
+    }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .palette { display: flex; gap: 8px; align-items: center; }
+    .swatch {
+      width: 28px; height: 28px; border-radius: 8px;
+      border: 2px solid rgba(0,0,0,0.25);
+      cursor: pointer;
+      position: relative;
+    }
+    .swatch[aria-pressed="true"]::after{
+      content:"";
+      position:absolute; inset:-4px;
+      border: 2px solid currentColor;
+      border-radius: 12px;
+    }
+    button {
+      padding: 8px 12px; border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.25);
+      background: transparent;
+      cursor: pointer;
+    }
+    canvas {
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.25);
+      touch-action: none; /* lets pointer events work nicely on mobile */
+      image-rendering: pixelated;
+    }
+    .hint { opacity: 0.75; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1 style="margin:0;">22×14 Pixel Painter</h1>
+
+  <div class="row">
+    <div class="palette" id="palette" aria-label="Color palette"></div>
+    <button id="clearBtn" type="button">Clear</button>
+  </div>
+
+  <canvas id="c" width="22" height="14" aria-label="Pixel grid"></canvas>
+  <div class="hint">Tip: click/tap to paint. Click-drag (or touch-drag) to paint continuously.</div>
+
+  <script>
+    // --- Config ---
+    const GRID_W = 22;
+    const GRID_H = 14;
+
+    // 8 provided colors (edit these however you like)
+    const COLORS = [
+      "#000000", // black
+      "#ffffff", // white
+      "#e63946", // red
+      "#f1fa8c", // yellow
+      "#2a9d8f", // teal
+      "#457b9d", // blue
+      "#a855f7", // purple
+      "#f4a261"  // orange
+    ];
+
+    // Display scale: how big each pixel appears (in CSS pixels)
+    const SCALE = 24;
+
+    // --- State ---
+    let selected = 0;
+    const pixels = new Uint8Array(GRID_W * GRID_H); // stores color indices 0..7
+
+    // --- DOM ---
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const paletteEl = document.getElementById("palette");
+    const clearBtn = document.getElementById("clearBtn");
+
+    // Make the tiny canvas show up big (without changing its internal resolution)
+    canvas.style.width = (GRID_W * SCALE) + "px";
+    canvas.style.height = (GRID_H * SCALE) + "px";
+
+    // --- Palette UI ---
+    function renderPalette() {
+      paletteEl.innerHTML = "";
+      COLORS.forEach((hex, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "swatch";
+        b.style.background = hex;
+        b.style.color = hex; // used for selection outline
+        b.setAttribute("aria-pressed", String(i === selected));
+        b.title = `Color ${i + 1}: ${hex}`;
+        b.addEventListener("click", () => {
+          selected = i;
+          // update aria-pressed
+          [...paletteEl.children].forEach((child, idx) => {
+            child.setAttribute("aria-pressed", String(idx === selected));
+          });
+        });
+        paletteEl.appendChild(b);
+      });
+    }
+
+    // --- Drawing ---
+    function drawAll() {
+      // Paint each grid cell directly onto the 22×14 canvas
+      for (let y = 0; y < GRID_H; y++) {
+        for (let x = 0; x < GRID_W; x++) {
+          const idx = y * GRID_W + x;
+          ctx.fillStyle = COLORS[pixels[idx]];
+          ctx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+
+    function setPixel(x, y, colorIndex) {
+      if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
+      const idx = y * GRID_W + x;
+      if (pixels[idx] === colorIndex) return;
+      pixels[idx] = colorIndex;
+      // draw just the changed pixel
+      ctx.fillStyle = COLORS[colorIndex];
+      ctx.fillRect(x, y, 1, 1);
+    }
+
+    function canvasToGridCoords(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const cx = evt.clientX - rect.left;
+      const cy = evt.clientY - rect.top;
+      const x = Math.floor((cx / rect.width) * GRID_W);
+      const y = Math.floor((cy / rect.height) * GRID_H);
+      return { x, y };
+    }
+
+    // --- Input: pointer events for mouse + touch ---
+    let painting = false;
+
+    canvas.addEventListener("pointerdown", (evt) => {
+      painting = true;
+      canvas.setPointerCapture(evt.pointerId);
+      const { x, y } = canvasToGridCoords(evt);
+      setPixel(x, y, selected);
+    });
+
+    canvas.addEventListener("pointermove", (evt) => {
+      if (!painting) return;
+      const { x, y } = canvasToGridCoords(evt);
+      setPixel(x, y, selected);
+    });
+
+    canvas.addEventListener("pointerup", () => { painting = false; });
+    canvas.addEventListener("pointercancel", () => { painting = false; });
+    canvas.addEventListener("pointerleave", () => { painting = false; });
+
+    clearBtn.addEventListener("click", () => {
+      pixels.fill(0);
+      drawAll();
+    });
+
+    // Init
+    renderPalette();
+    drawAll();
+  </script>
+</body>
+</html>
