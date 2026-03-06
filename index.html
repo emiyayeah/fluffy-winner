@@ -199,60 +199,33 @@
  **********************************************************************/
 
 const ADJECTIVES = [
-"wiggly",
-  "fuzzy",
-  "tiny",
-  "confetti",
-  "mossy",
-  "velvety",
-  "bouncy",
-  "shimmering",
-  "glittery",
-  "speckled",
-  "squishable",
-  "poofy","problematic",
-  "freckled","paranormal",
-"puffy","puritanical",
-"glossy","creamy",
-"shiny","fancy","forlorn",
-"radiant","discordant",
-"woolly","buttered",
-"lumpy","screaming",
-"victorious","defeated","euphoric","boastful","cranky","overpraised","long-lost","self-important","unemployed"
+"affectionate","antibacterial","boastful","bouncy","buoyant",
+"buttered","cathartic","charismatic","classless","confetti",
+"contaminated","cranky","creamy","defeated",
+"discordant","euphoric","fancy","fatal","flirtatious",
+"forlorn","freckled","fuzzy","glossy","long-lost",
+"lumpy","merciful","mossy","muscular","overpraised",
+"paranormal","poofy","pretentious","problematic","puritanical",
+"radiant","respectable","screaming","self-important","shimmering",
+"shiny","speckled","squishable","unemployed","velvety",
+"victorious","wiggly","woolly"
 ];
 
 const NOUNS = [
-"artifact","fungus",
-"dumpling","nugget","muffin","pasta","hug","receptacle","treasure","doodad",
-"keepsake",
-"curiosity",
-"contraption",
-"mechanism",
-"device",
-"shrimp",
-"pudding",
-"biscuit",
-"croissant","sea-slug",
-"noodle",
-"casserole","lambchop","bunny-rabbit",
-"hot-dog","giraffe","shawarma","bassochord",
-  "stringworm","kitty-cat","puppy-dog","floof","cupcake","bnuy","creature","invertebrate",
-  "carnivore","biped","specter","apparition","thumbs-up","no-thanks","cartwheel","apology","cackle","applause","occupant",
+"apology","apparition","applause","artifact","bassochord",
+"biped","biscuit","bnuy","bunny-rabbit","cackle",
+"carnivore","cartwheel","casserole","contraption","creature",
+"croissant","cupcake","curiosity","device","dumpling",
+"floof","giraffe","hot-dog","invertebrate","keepsake",
+"kitty-cat","lambchop","mechanism","no-thanks","noodle",
+"occupant","pudding","puppy-dog","sea-slug","shawarma",
+"shrimp","specter","stringworm","thumbs-up"
 ];
 
 /* Rare extra word that appears occasionally */
 const FLOURISHES = [
-"delight",
-"surprise",
-"miracle",
-"spectacle",
-"masterpiece",
-"catastrophe",
-"calamity",
-"tragedy",
-"meltdown",
-  "disaster"
-
+"calamity","catastrophe","delight","disaster","masterpiece",
+"meltdown","miracle","spectacle","surprise","tragedy"
 ];
 
 function randomName() {
@@ -478,8 +451,10 @@ function setPixel(x, y, colorIndex) {
 
     // Clear = reset to white background
     clearBtn.addEventListener("click", () => {
-      pixels.fill(EMPTY);
-      drawAll();
+    if (!confirm("start a new mural? this will erase the current one.")) return;
+
+    pixels.fill(EMPTY);
+    drawAll();
     });
 
     // Export PNG:
@@ -530,6 +505,7 @@ function setPixel(x, y, colorIndex) {
   </script>
 </body>
 </html>
+
 
 
 
