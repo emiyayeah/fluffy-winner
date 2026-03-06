@@ -84,14 +84,14 @@
       <div class="hint" id="paletteHint"></div>
     </div>
 
-    <button id="clearBtn" type="button">Clear</button>
-    <button id="exportBtn" type="button">Export PNG</button>
+    <button id="exportBtn" type="button">export png</button>
   </div>
 
   <!-- NOTE:
        We will set the canvas size in JS so it is "big" internally (not CSS-scaled).
        That makes gridlines easy and prevents the gray/muted issue you saw. -->
   <canvas id="c" aria-label="Pixel grid"></canvas>
+  <button id="clearBtn" type="button">clear mural</button>
 
   <div class="hint">
     Tip: click/tap to paint. Click-drag (or touch-drag) to paint continuously.
@@ -505,6 +505,7 @@ function setPixel(x, y, colorIndex) {
   </script>
 </body>
 </html>
+
 
 
 
