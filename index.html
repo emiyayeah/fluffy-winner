@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+	<meta name="darkreader-lock">
   <title>pixel painting playground</title>
 
   <style>
@@ -16,18 +17,48 @@
       justify-items: start;
     }
 
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
-    .paletteWrap { display: grid; gap: 6px; }
-    .palette { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    /* A simple vertical stack for palette sections */
+    .paletteWrap {
+      display: grid;
+      gap: 6px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .paletteBlock {
+      display: grid;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .paletteTitle {
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .palette {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
     .swatch {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
       border: 2px solid rgba(0,0,0,0.25);
       cursor: pointer;
       position: relative;
+      flex: 0 0 auto;
     }
 
     /* Visual indicator for the currently selected color */
@@ -39,6 +70,32 @@
       border-radius: 12px;
     }
 
+	  /* Special styling for the erase / background swatch */
+		.eraseSwatch {
+		  position: relative;
+		  margin-left: 10px; /* pushes it slightly away from the live colors */
+		  background:
+		    linear-gradient(45deg, #ddd 25%, transparent 25%),
+		    linear-gradient(-45deg, #ddd 25%, transparent 25%),
+		    linear-gradient(45deg, transparent 75%, #ddd 75%),
+		    linear-gradient(-45deg, transparent 75%, #ddd 75%);
+		  background-size: 8px 8px;
+		  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+		}
+
+	/* Red diagonal slash overlay */
+	.eraseSwatch::before {
+	  content: "";
+	  position: absolute;
+	  width: 2px;
+	  height: 130%;
+	  background: rgba(180, 40, 40, 0.75);
+	  left: 50%;
+	  top: -15%;
+	  transform: rotate(45deg);
+	  pointer-events: none;
+	}
+
     button {
       padding: 8px 12px;
       border-radius: 10px;
@@ -47,12 +104,27 @@
       cursor: pointer;
     }
 
+		#toggleBonusBtn {
+	  width: fit-content;
+	  align-self: start;
+	}	  
+
+    /* Make clear feel a little more destructive than the other buttons */
+    #clearBtn {
+      border-color: rgba(200, 60, 60, 0.5);
+      color: rgb(150, 40, 40);
+    }
+
+    #clearBtn:hover {
+      background: rgba(200, 60, 60, 0.08);
+    }
+
     /* Canvas has a visible border and rounded corners. */
     canvas {
       border-radius: 14px;
       border: 1px solid rgba(0,0,0,0.25);
-      touch-action: none; /* helps pointer events on mobile */
-      background: #fff;   /* just in case; we also paint a white background in JS */
+      touch-action: none;
+      background: #fff;
       display: block;
     }
 
@@ -63,55 +135,109 @@
       max-width: 80ch;
     }
 
-#paletteHint {
-  display: none;
-}
+    .sectionHint {
+      opacity: 0.8;
+      font-size: 13px;
+      line-height: 1.35;
+      max-width: 80ch;
+    }
 
     code {
       padding: 0 6px;
       border-radius: 6px;
       background: rgba(0,0,0,0.06);
     }
+
+/* Bonus palette uses a fixed grid: 11 columns x 2 rows */
+	.bonusPalette {
+  	display: grid;
+  	grid-template-columns: repeat(11, 34px);
+  	gap: 10px;
+	}
+
+	.hidden {
+  	display: none;
+	}
+
   </style>
 </head>
 
 <body>
   <h1 style="margin:0;">pixel painting playground</h1>
 
-  <div class="row">
-    <div class="paletteWrap">
-      <div class="palette" id="palette" aria-label="Color palette"></div>
-      <div class="hint" id="paletteHint"></div>
-    </div>
+	<!-- LIVE / WEEKLY PALETTE -->
+	<div class="paletteWrap">
+	  <div class="paletteBlock">
+		<div class="paletteTitle">live colors</div>
+		
+		<div class="sectionHint">
+		  this week's available colors plus a permanent white "erase" swatch
+		</div>
+		
+		<div class="sectionHint">
+		  currently painting with: <strong id="currentColorLabel"></strong>
+		</div>
+		
+		<div class="palette" id="livePalette" aria-label="Weekly color palette"></div>
+	  </div>
+	</div>
 
-    <button id="exportBtn" type="button">export png</button>
+  <!-- CANVAS -->
+  <canvas id="c" aria-label="Pixel grid"></canvas>
+
+  <!-- GENERAL HELP TEXT -->
+  <div class="hint">
   </div>
 
-  <!-- NOTE:
-       We will set the canvas size in JS so it is "big" internally (not CSS-scaled).
-       That makes gridlines easy and prevents the gray/muted issue you saw. -->
-  <canvas id="c" aria-label="Pixel grid"></canvas>
-  <button id="clearBtn" type="button">clear mural</button>
+	<!-- BONUS COLORS -->
+	<div class="paletteWrap">
+	
+	  <div class="paletteBlock hidden" id="bonusPaletteSection">
+	
+	    <div class="palette bonusPalette" id="bonusPalette"></div>
+		<div class="sectionHint">
+	      surprise! all remaining possible colors, provided for playground purposes 
+	    </div><br>
+	  </div>
+	  <button id="toggleBonusBtn" type="button">show non-live colors</button>
+	</div>
+	
+  <!-- ACTION BUTTONS -->
+  <div class="row">
+    <button id="exportBtn" type="button">export png</button>
+    <button id="exportCodeBtn" type="button">export code</button>
+    <button id="loadCodeBtn" type="button">load code</button>
+  </div>
 
   <div class="hint">
-    Tip: click/tap to paint. Click-drag (or touch-drag) to paint continuously.
-    Export creates a clean PNG (no grid), scaled up so it’s readable.
+    <strong>export png</strong> saves an image. <br/>
+    <strong>export code</strong> copies a save code to your clipboard. <br/>
+    <strong>load code</strong> lets you paste a previous save code back into the painter.
   </div>
+
+  <button id="clearBtn" type="button">clear mural</button>
 
   <script>
     /**********************************************************************
-     * 0) What this tool does (high-level)
+     * 0) BIG IDEA / REFACTOR NOTES
      * --------------------------------------------------------------------
-     * - The mural is 22×14 "cells" (308 total).
-     * - We store the mural as an array of 308 numbers.
-     *   Each number is 0..7 (index into the LIVE palette of 8 colors).
+     * This version uses a more flexible color system than the earlier
+     * "0..7 weekly palette index" version.
      *
-     * - We draw the mural to a canvas that is internally large:
-     *     (22 * CELL_SIZE) × (14 * CELL_SIZE)
-     *   So each mural cell is a big square on screen.
+     * OLD APPROACH:
+     * - each cell stored 0..7
+     * - that worked fine for just the weekly palette
+     * - but got awkward when adding bonus colors or loading old saves
      *
-     * - We draw faint gridlines ON TOP for editing.
-     * - Export draws onto a separate canvas WITHOUT gridlines.
+     * NEW APPROACH:
+     * - each cell stores a COLOR ID string, such as "teal" or "parmesan"
+     * - blank/white cells store null
+     *
+     * Why this is nicer:
+     * - weekly colors and bonus colors work the same way
+     * - saved murals are easier to understand
+     * - loading old murals is simpler
+     * - we no longer have to treat "official" colors differently in storage
      **********************************************************************/
 
     // --- MURAL SIZE (fixed) ---
@@ -119,19 +245,19 @@
     const GRID_H = 14;
 
     // --- EDITOR CELL SIZE (how big each pixel looks on screen) ---
-    // Increase for a larger editor; decrease for smaller.
     const CELL_SIZE = 24;
 
     /**********************************************************************
-     * 1) Colors: 30 total available, 8 live per week
+     * 1) COLOR DATA
      * --------------------------------------------------------------------
-     * - Add/edit colors in ALL_COLORS (30+ options).
-     * - Choose which 8 are live this week using LIVE_COLOR_IDS.
+     * ALL_COLORS contains every named color the painter knows about.
+     * LIVE_COLOR_IDS contains the featured weekly set.
      *
-     * Weekly swap process:
-     *   1) Edit LIVE_COLOR_IDS to a different set of 8 IDs
-     *   2) Commit
-     *   3) Done
+     * IMPORTANT:
+     * - ALL_COLORS is the master list
+     * - LIVE_COLOR_IDS is a subset of ALL_COLORS
+     * - BONUS colors are computed automatically as:
+     *     all colors in ALL_COLORS that are NOT in LIVE_COLOR_IDS
      **********************************************************************/
 
     const ALL_COLORS = [
@@ -167,8 +293,7 @@
       { id: "vermillion", hex: "#ff3e3a" },
     ];
 
-    // 👇 Change these 8 IDs weekly.
-    // They must exist in ALL_COLORS above.
+    // Change these weekly to rotate the featured colors.
     const LIVE_COLOR_IDS = [
       "thangerine",
       "teal",
@@ -179,188 +304,277 @@
       "indigo",
       "aquamarine",
     ];
-    
-    // Turn ALL_COLORS into a map (id -> hex) for easy lookup
+
+    // Special permanent "erase" swatch.
+    // This is not a real color in ALL_COLORS. It means "paint this cell white/blank."
+    const ERASE_ID = "__erase__";
+
+    // Turn ALL_COLORS into a map for fast lookup:
+    // colorId -> hex
     const allById = new Map(ALL_COLORS.map(c => [c.id, c.hex]));
 
-    // Build the live palette (exactly 8 colors, in your chosen order)
+    // Build live color objects in the order listed in LIVE_COLOR_IDS.
     const LIVE_COLORS = LIVE_COLOR_IDS.map(id => {
       const hex = allById.get(id);
       if (!hex) {
-        // If you typo a color ID, we warn and use a loud fallback
         console.warn(`LIVE_COLOR_IDS includes "${id}" but it isn't in ALL_COLORS.`);
         return { id, hex: "#ff00ff" };
       }
       return { id, hex };
     });
 
-/**********************************************************************
- * Random filename generator
- **********************************************************************/
+    // Build bonus colors automatically:
+    // everything in ALL_COLORS that is NOT in LIVE_COLOR_IDS
+    const liveIdSet = new Set(LIVE_COLOR_IDS);
+    const BONUS_COLORS = ALL_COLORS.filter(c => !liveIdSet.has(c.id));
 
-const ADJECTIVES = [
-"affectionate","antibacterial","boastful","bouncy","buoyant",
-"buttered","cathartic","charismatic","classless","confetti",
-"contaminated","cranky","creamy","defeated",
-"discordant","euphoric","fancy","fatal","flirtatious",
-"forlorn","freckled","fuzzy","glossy","long-lost",
-"lumpy","merciful","mossy","muscular","overpraised",
-"paranormal","poofy","pretentious","problematic","puritanical",
-"radiant","respectable","screaming","self-important","shimmering",
-"shiny","speckled","squishable","unemployed","velvety",
-"victorious","wiggly","woolly"
-];
-
-const NOUNS = [
-"apology","apparition","applause","artifact","bassochord",
-"biped","biscuit","bnuy","bunny-rabbit","cackle",
-"carnivore","cartwheel","casserole","contraption","creature",
-"croissant","cupcake","curiosity","device","dumpling",
-"floof","giraffe","hot-dog","invertebrate","keepsake",
-"kitty-cat","lambchop","mechanism","no-thanks","noodle",
-"occupant","pudding","puppy-dog","sea-slug","shawarma",
-"shrimp","specter","stringworm","thumbs-up"
-];
-
-/* Rare extra word that appears occasionally */
-const FLOURISHES = [
-"calamity","catastrophe","delight","disaster","masterpiece",
-"meltdown","miracle","spectacle","surprise","tragedy"
-];
-
-function randomName() {
-  const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-
-  let name = `${a}-${n}`;
-
-  /* ~10% chance of adding a third whimsical word */
-  if (Math.random() < 0.1) {
-    const f = FLOURISHES[Math.floor(Math.random() * FLOURISHES.length)];
-    name += `-${f}`;
-  }
-
-  return name;
-}
-    
     /**********************************************************************
-     * 2) State: mural data + selected color
+     * 2) RANDOM FILENAME GENERATOR
      **********************************************************************/
 
-    // pixels is 308 entries (22*14), each 0..7
-    const pixels = new Int16Array(GRID_W * GRID_H);
+    const ADJECTIVES = [
+      "affectionate","antibacterial","bespectacled","boastful","bouncy","buoyant","buttered",
+		"cathartic","charismatic","classless","contaminated","cranky","creamy",
+		"dainty","defeated","discordant","disembodied","euphoric",
+		"fanciful","flirtatious","forlorn","freckled","fuzzy",
+		"glossy","long-lost","long-necked","lumpy",
+		"merciful","mossy","muscular","overpraised",
+		"paranormal","pretentious","problematic","puritanical",
+		"radiant","regurgitated","respectable",
+		"screaming","self-important","shimmering","shiny","squishable",
+		"unemployed","velvety","victorious","wiggly","woolly"
+    ];
 
-    // Background is always white, independent of the palette.
-    // -1 means "blank / white cell".
-    const EMPTY = -1;
-    pixels.fill(EMPTY);
+    const NOUNS = [
+      "alley-cat","apology","apparition","applause",
+		"bambino","bassochord","biped","biscuit","bnuy",
+		"carnivore","cartwheel","casserole","creature-of-the-night","critter","croissant","cupcake","curiosity",
+		"delusion","destroyer","dumpling",
+		"fatality","finger-puppet","floof","herbivore","hot-dog","invertebrate",
+		"keepsake","lambchop","lapdog","lowlander","marsupial","no-thanks","noodle",
+		"occupant","omen","pudding",
+		"sea-slug","shawarma","shrimp","space-invader","spaghetti","stringworm",
+		"thingamabob","torpedo","thumbs-up","yes-please"
+    ];
 
-    // We'll use the same value for the "white swatch" selection.
-    // If selectedColor === ERASE, we paint EMPTY (-1) into the grid.
-    const ERASE = EMPTY;
+    const FLOURISHES = [
+      "catastrophe","delight","disaster","extract","fiasco",
+			"masterpiece","miracle","surprise","tragedy"
+    ];
 
-    // selectedColor can be 0..7 (weekly palette indices) OR -1 (erase/white)
-    let selectedColor = 0;
+    function randomName() {
+      const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+      const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+
+      let name = `${a}-${n}`;
+
+      // ~10% chance of a third word
+      if (Math.random() < 0.1) {
+        const f = FLOURISHES[Math.floor(Math.random() * FLOURISHES.length)];
+        name += `-${f}`;
+      }
+
+      return name;
+    }
 
     /**********************************************************************
-     * 3) DOM / Canvas setup (including crisp rendering on high-DPI screens)
+     * 3) STATE
+     * --------------------------------------------------------------------
+     * pixels stores one entry per cell.
+     *
+     * Each cell stores:
+     * - null          -> blank / white
+     * - "teal"        -> one of the real color IDs
+     * - "parmesan"    -> another real color ID
+     *
+     * This is the heart of the refactor.
+     **********************************************************************/
+
+    const CELL_COUNT = GRID_W * GRID_H;
+
+    // Use a normal JavaScript array here because we want to store strings and null,
+    // not just small integers.
+    const pixels = Array(CELL_COUNT).fill(null);
+
+    // selectedColorId holds either:
+    // - a real color id string (e.g. "teal")
+    // - ERASE_ID (meaning "paint white/blank")
+    let selectedColorId = LIVE_COLOR_IDS[0] || ERASE_ID;
+
+    /**********************************************************************
+     * 4) DOM / CANVAS SETUP
      **********************************************************************/
 
     const canvas = document.getElementById("c");
     const ctx = canvas.getContext("2d", { alpha: false });
 
-    const paletteEl = document.getElementById("palette");
-    const paletteHint = document.getElementById("paletteHint");
+    const livePaletteEl = document.getElementById("livePalette");
+    const bonusPaletteEl = document.getElementById("bonusPalette");
+
     const clearBtn = document.getElementById("clearBtn");
     const exportBtn = document.getElementById("exportBtn");
+    const exportCodeBtn = document.getElementById("exportCodeBtn");
+    const loadCodeBtn = document.getElementById("loadCodeBtn");
+		const currentColorLabel = document.getElementById("currentColorLabel");
+	const toggleBonusBtn = document.getElementById("toggleBonusBtn");
+	const bonusPaletteSection = document.getElementById("bonusPaletteSection");
 
-    // We want the canvas to be exactly GRID_W * CELL_SIZE wide in "CSS pixels".
+	toggleBonusBtn.addEventListener("click", () => {
+  	const hidden = bonusPaletteSection.classList.toggle("hidden");
+
+  	toggleBonusBtn.textContent = hidden
+   	 ? "show non-live colors"
+   	 : "hide non-live colors";
+	});
+
     const cssWidth = GRID_W * CELL_SIZE;
     const cssHeight = GRID_H * CELL_SIZE;
 
-    // Device Pixel Ratio (retina screens, etc.). This makes the canvas sharp.
     const dpr = window.devicePixelRatio || 1;
 
-    // Set canvas internal resolution (real pixels)
     canvas.width = Math.floor(cssWidth * dpr);
     canvas.height = Math.floor(cssHeight * dpr);
 
-    // Set canvas display size (CSS pixels)
     canvas.style.width = cssWidth + "px";
     canvas.style.height = cssHeight + "px";
 
-    // Tell the context: "treat my drawing units as CSS pixels"
-    // Now when we draw a 24×24 square, it looks correct on all screens.
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     /**********************************************************************
-     * 4) Palette UI
+     * 5) HELPER FUNCTIONS
      **********************************************************************/
 
-function renderPalette() {
-  paletteEl.innerHTML = "";
+    // Look up a hex color from a color ID.
+    // Blank/null always draws as white.
+    function colorIdToHex(colorId) {
+      if (colorId === null || colorId === ERASE_ID) return "#ffffff";
+      return allById.get(colorId) || "#ff00ff";
+    }
 
-  // Build a single list of swatches:
-  // - the 8 live weekly colors, then
-  // - one permanent "white/erase" at the end
-  const swatches = [
-    ...LIVE_COLORS.map((c, i) => ({
-      id: c.id,
-      hex: c.hex,
-      value: i,        // clicking selects palette index 0..7
-    })),
-    {
-      id: "white",
-      hex: "#ffffff",
-      value: ERASE,    // clicking selects -1 (erase)
-    },
-  ];
+    // Convert x,y into a flat array index
+    function cellIndex(x, y) {
+      return y * GRID_W + x;
+    }
 
-  swatches.forEach((s) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "swatch";
-    b.style.background = s.hex;
-    b.style.color = s.hex; // used for selection ring
+    // Convert pointer location -> which grid cell?
+    function pointerToCell(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const cx = evt.clientX - rect.left;
+      const cy = evt.clientY - rect.top;
 
-    // Show name on hover
-    b.title = s.id;
+      const x = Math.floor(cx / CELL_SIZE);
+      const y = Math.floor(cy / CELL_SIZE);
 
-    // Accessible pressed state + visual ring
-    b.setAttribute("aria-pressed", String(s.value === selectedColor));
+      return { x, y };
+    }
 
-    b.addEventListener("click", () => {
-      selectedColor = s.value;
-
-      // Update aria-pressed for every swatch button
-      [...paletteEl.children].forEach((child, idx) => {
-        const v = swatches[idx].value;
-        child.setAttribute("aria-pressed", String(v === selectedColor));
-      });
-    });
-
-    paletteEl.appendChild(b);
-  });
-}
+			function updateCurrentColorLabel() {
+	  if (selectedColorId === ERASE_ID) {
+	    currentColorLabel.textContent = "erase / background";
+	  } else {
+	    currentColorLabel.textContent = selectedColorId;
+	  }
+	}
 
     /**********************************************************************
-     * 5) Drawing (editor view)
+     * 6) PALETTE RENDERING
+     * --------------------------------------------------------------------
+     * We render two different palette areas:
+     *
+     * 1) LIVE PALETTE
+     *    - weekly colors
+     *    - white erase swatch
+     *
+     * 2) BONUS PALETTE
+     *    - all non-live colors
      **********************************************************************/
 
-    // Draw the mural pixels (no grid)
+    function createSwatchButton(swatch) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "swatch";
+      b.style.background = swatch.hex;
+      b.style.color = swatch.hex;
+      b.title = swatch.id;
+      b.setAttribute("aria-pressed", String(swatch.id === selectedColorId));
+
+			b.addEventListener("click", () => {
+			  selectedColorId = swatch.id;
+			  updateSwatchSelectionUI();
+			  updateCurrentColorLabel();
+			});
+
+      return b;
+    }
+
+    function updateSwatchSelectionUI() {
+      // Update all swatches across both palette areas
+      const allSwatchButtons = document.querySelectorAll(".swatch");
+      allSwatchButtons.forEach(btn => {
+        const id = btn.dataset.colorId;
+        btn.setAttribute("aria-pressed", String(id === selectedColorId));
+      });
+    }
+
+    function renderLivePalette() {
+      livePaletteEl.innerHTML = "";
+
+      // Weekly colors first...
+      LIVE_COLORS.forEach((c) => {
+        const swatch = createSwatchButton({
+          id: c.id,
+          hex: c.hex
+        });
+        swatch.dataset.colorId = c.id;
+        livePaletteEl.appendChild(swatch);
+      });
+
+	const eraseSwatch = createSwatchButton({
+	  id: ERASE_ID,
+	  hex: "#ffffff"
+	});
+	
+	eraseSwatch.classList.add("eraseSwatch");
+	eraseSwatch.title = "erase / return to background";
+	eraseSwatch.dataset.colorId = ERASE_ID;
+	
+	livePaletteEl.appendChild(eraseSwatch);
+	}
+
+    function renderBonusPalette() {
+      bonusPaletteEl.innerHTML = "";
+
+      BONUS_COLORS.forEach((c) => {
+        const swatch = createSwatchButton({
+          id: c.id,
+          hex: c.hex
+        });
+        swatch.dataset.colorId = c.id;
+        bonusPaletteEl.appendChild(swatch);
+      });
+    }
+
+    function renderPalettes() {
+      renderLivePalette();
+      renderBonusPalette();
+      updateSwatchSelectionUI();
+    }
+
+    /**********************************************************************
+     * 7) DRAWING
+     **********************************************************************/
+
     function drawPixelsOnly() {
-      // Fill background (this ensures "white" is actually painted, not transparent)
+      // Paint the whole editor background white
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, cssWidth, cssHeight);
 
-      // Draw each cell as a big square
+      // Draw each cell
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
-          const idx = y * GRID_W + x;
-          const colorHex =   
-            pixels[idx] === EMPTY
-            ? "#ffffff"
-            : LIVE_COLORS[pixels[idx]].hex;
+          const idx = cellIndex(x, y);
+          const colorId = pixels[idx];
+          const colorHex = colorIdToHex(colorId);
 
           ctx.fillStyle = colorHex;
           ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -368,22 +582,19 @@ function renderPalette() {
       }
     }
 
-    // Draw faint grid lines over the mural (editor-only)
     function drawGridLines() {
       ctx.save();
-      ctx.strokeStyle = "rgba(0,0,0,0.12)"; // faint on white
+      ctx.strokeStyle = "rgba(0,0,0,0.12)";
       ctx.lineWidth = 1;
 
       ctx.beginPath();
 
-      // Vertical grid lines
       for (let x = 0; x <= GRID_W; x++) {
-        const px = x * CELL_SIZE + 0.5; // +0.5 makes 1px lines crisp
+        const px = x * CELL_SIZE + 0.5;
         ctx.moveTo(px, 0);
         ctx.lineTo(px, cssHeight);
       }
 
-      // Horizontal grid lines
       for (let y = 0; y <= GRID_H; y++) {
         const py = y * CELL_SIZE + 0.5;
         ctx.moveTo(0, py);
@@ -394,33 +605,21 @@ function renderPalette() {
       ctx.restore();
     }
 
-    // Full redraw (pixels + grid overlay)
     function drawAll() {
       drawPixelsOnly();
       drawGridLines();
     }
 
     /**********************************************************************
-     * 6) Input (paint on click-drag)
+     * 8) PAINTING
      **********************************************************************/
 
-    // Convert pointer location -> which grid cell?
-    function pointerToCell(evt) {
-      const rect = canvas.getBoundingClientRect();
-      const cx = evt.clientX - rect.left;
-      const cy = evt.clientY - rect.top;
+    function setPixel(x, y, colorId) {
+      if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
 
-      const x = Math.floor(cx / CELL_SIZE);
-      const y = Math.floor(cy / CELL_SIZE);
-      return { x, y };
+      // ERASE_ID means "make this cell blank/white"
+      pixels[cellIndex(x, y)] = (colorId === ERASE_ID) ? null : colorId;
     }
-
-function setPixel(x, y, colorIndex) {
-  if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
-
-  // If they selected the white swatch, store EMPTY (-1).
-  pixels[y * GRID_W + x] = (colorIndex === ERASE) ? EMPTY : colorIndex;
-}
 
     let painting = false;
 
@@ -429,7 +628,7 @@ function setPixel(x, y, colorIndex) {
       canvas.setPointerCapture(evt.pointerId);
 
       const { x, y } = pointerToCell(evt);
-      setPixel(x, y, selectedColor);
+      setPixel(x, y, selectedColorId);
       drawAll();
     });
 
@@ -437,7 +636,7 @@ function setPixel(x, y, colorIndex) {
       if (!painting) return;
 
       const { x, y } = pointerToCell(evt);
-      setPixel(x, y, selectedColor);
+      setPixel(x, y, selectedColorId);
       drawAll();
     });
 
@@ -446,23 +645,75 @@ function setPixel(x, y, colorIndex) {
     canvas.addEventListener("pointerleave", () => { painting = false; });
 
     /**********************************************************************
-     * 7) Buttons
+     * 9) SAVE / LOAD CODE
+     * --------------------------------------------------------------------
+     * We store:
+     * - the weekly palette that was active when the mural was made
+     * - the pixel data as color IDs (or null)
+     *
+     * This means old murals can be restored exactly as they were, even after
+     * the weekly palette changes later.
      **********************************************************************/
 
-    // Clear = reset to white background
-    clearBtn.addEventListener("click", () => {
-    if (!confirm("start a new mural? this will erase the current one.")) return;
+    function encodeMural() {
+      return JSON.stringify({
+        version: 2,
+        width: GRID_W,
+        height: GRID_H,
+        livePalette: LIVE_COLOR_IDS,
+        pixels: pixels
+      });
+    }
 
-    pixels.fill(EMPTY);
-    drawAll();
+    function decodeAndLoadMural(rawText) {
+      const data = JSON.parse(rawText);
+
+      // Basic validation
+      if (!data || typeof data !== "object") {
+        throw new Error("Code is not valid JSON.");
+      }
+
+      if (data.width !== GRID_W || data.height !== GRID_H) {
+        throw new Error(`This code is for a ${data.width}×${data.height} mural, not ${GRID_W}×${GRID_H}.`);
+      }
+
+      if (!Array.isArray(data.pixels) || data.pixels.length !== CELL_COUNT) {
+        throw new Error("Pixel data is missing or the wrong length.");
+      }
+
+      // Optional validation: ensure every stored color is either null,
+      // ERASE_ID (not expected in storage, but harmless), or a known color ID.
+      for (const colorId of data.pixels) {
+        if (colorId === null) continue;
+        if (colorId === ERASE_ID) continue;
+        if (!allById.has(colorId)) {
+          throw new Error(`Unknown color id found in code: ${colorId}`);
+        }
+      }
+
+      // Load the pixels into the current working array
+      for (let i = 0; i < CELL_COUNT; i++) {
+        pixels[i] = data.pixels[i];
+      }
+
+      drawAll();
+    }
+
+    /**********************************************************************
+     * 10) BUTTONS
+     **********************************************************************/
+
+    clearBtn.addEventListener("click", () => {
+      if (!confirm("start a new mural? this will erase the current one.")) return;
+
+      for (let i = 0; i < CELL_COUNT; i++) {
+        pixels[i] = null;
+      }
+      drawAll();
     });
 
-    // Export PNG:
-    // - We draw the mural to an offscreen canvas.
-    // - We do NOT draw the grid.
-    // - We scale up so it’s readable.
     exportBtn.addEventListener("click", () => {
-      const exportScale = 20; // size of each cell in the exported PNG
+      const exportScale = 20;
 
       const outW = GRID_W * exportScale;
       const outH = GRID_H * exportScale;
@@ -473,47 +724,72 @@ function setPixel(x, y, colorIndex) {
 
       const exportCtx = exportCanvas.getContext("2d");
 
-      // Background
+      // White background
       exportCtx.fillStyle = "#ffffff";
       exportCtx.fillRect(0, 0, outW, outH);
 
-      // Pixels (no grid)
+      // Draw pixels with NO grid
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
-          const idx = y * GRID_W + x;
-          exportCtx.fillStyle =
-            pixels[idx] === EMPTY
-              ? "#ffffff"
-              : LIVE_COLORS[pixels[idx]].hex;
+          const idx = cellIndex(x, y);
+          const colorHex = colorIdToHex(pixels[idx]);
+          exportCtx.fillStyle = colorHex;
           exportCtx.fillRect(x * exportScale, y * exportScale, exportScale, exportScale);
         }
       }
 
-      // Trigger download
       const link = document.createElement("a");
-     link.download = randomName() + ".png";
+      link.download = randomName() + ".png";
       link.href = exportCanvas.toDataURL("image/png");
       link.click();
     });
 
+    exportCodeBtn.addEventListener("click", async () => {
+      const code = encodeMural();
+
+      try {
+        await navigator.clipboard.writeText(code);
+
+        const originalText = exportCodeBtn.textContent;
+        exportCodeBtn.textContent = "copied!";
+        setTimeout(() => {
+          exportCodeBtn.textContent = originalText;
+        }, 1200);
+      } catch (err) {
+        console.error("Failed to copy mural code:", err);
+        alert("Copy failed. Your browser may not allow clipboard access here.");
+      }
+    });
+
+    loadCodeBtn.addEventListener("click", () => {
+      const pasted = prompt("Paste a mural code here:");
+
+      // User hit cancel
+      if (pasted === null) return;
+
+      try {
+        decodeAndLoadMural(pasted);
+
+        const originalText = loadCodeBtn.textContent;
+        loadCodeBtn.textContent = "loaded!";
+        setTimeout(() => {
+          loadCodeBtn.textContent = originalText;
+        }, 1200);
+      } catch (err) {
+        console.error("Failed to load mural code:", err);
+        alert(`Could not load code: ${err.message}`);
+      }
+    });
+
     /**********************************************************************
-     * 8) Init
+     * 11) INIT
      **********************************************************************/
-    renderPalette();
-    selectedColor = 0;
-    drawAll();
+
+			renderPalettes();
+			updateCurrentColorLabel();
+			drawAll();
   </script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-
-
-
-
 
