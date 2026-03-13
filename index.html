@@ -218,28 +218,7 @@
   <button id="clearBtn" type="button">clear mural</button>
 
   <script>
-    /**********************************************************************
-     * 0) BIG IDEA / REFACTOR NOTES
-     * --------------------------------------------------------------------
-     * This version uses a more flexible color system than the earlier
-     * "0..7 weekly palette index" version.
-     *
-     * OLD APPROACH:
-     * - each cell stored 0..7
-     * - that worked fine for just the weekly palette
-     * - but got awkward when adding bonus colors or loading old saves
-     *
-     * NEW APPROACH:
-     * - each cell stores a COLOR ID string, such as "teal" or "parmesan"
-     * - blank/white cells store null
-     *
-     * Why this is nicer:
-     * - weekly colors and bonus colors work the same way
-     * - saved murals are easier to understand
-     * - loading old murals is simpler
-     * - we no longer have to treat "official" colors differently in storage
-     **********************************************************************/
-
+     
     // --- MURAL SIZE (fixed) ---
     const GRID_W = 22;
     const GRID_H = 14;
@@ -295,14 +274,14 @@
 
     // Change these weekly to rotate the featured colors.
     const LIVE_COLOR_IDS = [
-      "thangerine",
-      "teal",
-      "honey mustard",
-      "shark grey",
-      "dove grey",
-      "buttermilk",
-      "indigo",
+      "dusty rose",
+      "camel",
+      "intestines pink",
+      "peach",
+      "sky blue",
       "aquamarine",
+      "indigo",
+      "parmesan",
     ];
 
     // Special permanent "erase" swatch.
