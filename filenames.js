@@ -3,33 +3,33 @@
  **********************************************************************/
 
 const ADJECTIVES = [
-  "affectionate","antibacterial","bespectacled","boastful","boingy","buoyant","buttered",
+  "affectionate","antibacterial","aristocratic","boingy","buoyant","buttered",
   "cathartic","charismatic","classless","contaminated","cranky","creamy",
-  "dainty","defeated","discordant","disembodied","euphoric",
-  "fanciful","flirtatious","forlorn","freckled","fuzzy",
+  "dainty","discordant","disembodied","euphoric",
+  "flirtatious","forlorn","freckled","fuzzy",
   "glossy","long-lost","long-necked","lumpy",
   "merciful","muscular","overpraised",
   "paranormal","pretentious","problematic","puritanical",
   "radiant","regurgitated","respectable",
   "screaming","self-important","shimmering","shiny","squishable",
-  "unemployed","velvety","victorious","wiggly","woolly"
+  "tragic","unemployed","velvety","victorious","wiggly"
 ];
 
 const NOUNS = [
   "alley-cat","apology","apparition","applause",
-  "bambino","bassochord","biped","biscuit","bnuy",
+  "bassochord","biped","biscuit",
   "carnivore","cartwheel","casserole","creature-of-the-night","critter","croissant","cupcake","curiosity",
   "delusion","destroyer","dumpling",
-  "fatality","finger-puppet","floof","herbivore","hot-dog","invertebrate",
+  "fatality","finger-puppet","herbivore","hot-dog","invertebrate",
   "keepsake","lambchop","lapdog","lowlander","marsupial","no-thanks","noodle",
-  "occupant","omen","pudding",
+  "occupant","pudding",
   "sea-slug","shawarma","shrimp","space-invader","spaghetti","stringworm",
   "thingamabob","torpedo","thumbs-up","yes-please"
 ];
 
 const FLOURISHES = [
-  "catastrophe","delight","disaster","extract","fiasco",
-  "masterpiece","miracle","surprise","to-the-max","tragedy"
+  "catastrophe","delight","disaster","fiasco",
+  "masterpiece","miracle","surprise","to-the-max"
 ];
 
 function randomName() {
