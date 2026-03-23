@@ -3,12 +3,12 @@
  **********************************************************************/
 
 const ADJECTIVES = [
-  "affectionate","antibacterial","bespectacled","boastful","bouncy","buoyant","buttered",
+  "affectionate","antibacterial","bespectacled","boastful","boingy","buoyant","buttered",
   "cathartic","charismatic","classless","contaminated","cranky","creamy",
   "dainty","defeated","discordant","disembodied","euphoric",
   "fanciful","flirtatious","forlorn","freckled","fuzzy",
   "glossy","long-lost","long-necked","lumpy",
-  "merciful","mossy","muscular","overpraised",
+  "merciful","muscular","overpraised",
   "paranormal","pretentious","problematic","puritanical",
   "radiant","regurgitated","respectable",
   "screaming","self-important","shimmering","shiny","squishable",
@@ -29,7 +29,7 @@ const NOUNS = [
 
 const FLOURISHES = [
   "catastrophe","delight","disaster","extract","fiasco",
-  "masterpiece","miracle","surprise","tragedy"
+  "masterpiece","miracle","surprise","to-the-max","tragedy"
 ];
 
 function randomName() {
