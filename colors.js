@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "charcoal",
-  "slate",
-  "pebble grey",
+  "indigo",
+  "honey mustard",
+  "buttermilk",
+  "teal",
+  "shark grey",
   "dove grey",
-  "purple plum",
-  "raspberry",
-  "apricot",
-  "steel blue",
+  "thangerine",
+  "aquamarine",
 ];
 
 // Special permanent "erase" swatch.
