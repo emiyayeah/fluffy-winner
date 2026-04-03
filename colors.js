@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "indigo",
-  "honey mustard",
-  "buttermilk",
-  "teal",
-  "shark grey",
-  "dove grey",
-  "thangerine",
+  "dusty rose",
+  "obsidian",
+  "parmesan",
+  "purple plum",
+  "steel blue",
   "aquamarine",
+  "apricot",
+  "vermillion",
 ];
 
 // Special permanent "erase" swatch.
