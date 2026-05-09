@@ -33,7 +33,7 @@ const ALL_COLORS = [
   { id: "purple plum", hex: "#70406f" },
   { id: "thistle", hex: "#bd4ca4" },
   { id: "dusty rose", hex: "#e96fa2" },
-  { id: "peach cream", hex: "#ffc5b7" },
+  { id: "peach", hex: "#ffc5b7" },
   { id: "intestines pink", hex: "#ff989f" },
 
   { id: "charcoal", hex: "#363441" },
