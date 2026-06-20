@@ -7,28 +7,40 @@ const ADJECTIVES = [
   "cathartic","charismatic","classless","contaminated","cranky","creamy",
   "dainty","discordant","disembodied","euphoric",
   "flirtatious","forlorn","freckled","fuzzy",
-  "glossy","long-lost","long-necked","lumpy",
-  "merciful","muscular","overpraised",
+  "long-lost","long-necked",
+  "merciful","muscular",
   "paranormal","pretentious","problematic","puritanical",
   "radiant","regurgitated","respectable",
   "screaming","self-important","shimmering","shiny","squishable",
-  "tragic","unemployed","velvety","victorious","wiggly"
+  "tragic","unemployed",
+  "interim",
+  "bureaucratic",
+  "suboptimal",
+  "emergency",
+  "unlicensed",
+  "momentous",
+  "haunted",
+  "unremarkable",
+  "wet",
+  "intentional",
+  "suspicious",
+  "apologetic","unauthorized",
+  "mostly-a"
 ];
 
 const NOUNS = [
-  "alley-cat","apology","apparition","applause",
-  "bassochord","biped","biscuit",
-  "carnivore","cartwheel","casserole","creature-of-the-night","critter","croissant","cupcake","curiosity",
+  "bassochord","biped","biscuit","bureaucrat",
+  "carnivore","cartwheel","casserole","committee-member","creature-of-the-night","critter","croissant","cupcake","curiosity",
   "delusion","destroyer","dumpling",
   "fatality","finger-puppet","herbivore","hot-dog","invertebrate",
   "keepsake","lambchop","lapdog","lowlander","marsupial","no-thanks","noodle",
-  "occupant","pudding",
-  "sea-slug","shawarma","shrimp","space-invader","spaghetti","stringworm",
-  "thingamabob","torpedo","thumbs-up","yes-please"
+  "placeholder","pudding","round-of-applause",
+  "sea-slug","shawarma","shrimp","snack","space-invader","spaghetti","stringworm",
+  "thingamabob","torpedo","thumbs-up","tooth","yes-please"
 ];
 
 const FLOURISHES = [
-  "catastrophe","delight","disaster","fiasco",
+  "apologist","catastrophe","delight","disaster","fiasco",
   "masterpiece","miracle","surprise","to-the-max"
 ];
 
