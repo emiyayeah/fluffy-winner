@@ -40,8 +40,8 @@ const NOUNS = [
 ];
 
 const FLOURISHES = [
-  "apologist","catastrophe","delight","disaster","fiasco",
-  "masterpiece","miracle","surprise","to-the-max"
+  "apologist","catastrophe","champion","collector","delight","denier","disaster","enthusiast","fiasco",
+  "fanatic","masterpiece","miracle","surprise","to-the-max"
 ];
 
 function randomName() {
@@ -50,8 +50,8 @@ function randomName() {
 
   let name = `${a}-${n}`;
 
-  // ~10% chance of a third word
-  if (Math.random() < 0.1) {
+  // ~15% chance of a third word
+  if (Math.random() < 0.15) {
     const f = FLOURISHES[Math.floor(Math.random() * FLOURISHES.length)];
     name += `-${f}`;
   }
