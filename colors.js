@@ -53,12 +53,12 @@ const ALL_COLORS = [
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
   "purple plum",
-  "aquamarine",
+  "thangerine",
   "vermillion",
-  "obsidian",
+  "alien green",
   "dusty rose",
   "steel blue",
-  "parmesan",
+  "teal",
   "apricot",
 ];
 
