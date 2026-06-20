@@ -23,7 +23,7 @@ const ADJECTIVES = [
   "unremarkable",
   "wet",
   "intentional",
-  "suspicious",
+  "suspicious","cautious",
   "apologetic","unauthorized",
   "mostly-a"
 ];
@@ -31,9 +31,9 @@ const ADJECTIVES = [
 const NOUNS = [
   "bassochord","biped","biscuit","bureaucrat",
   "carnivore","cartwheel","casserole","committee-member","creature-of-the-night","critter","croissant","cupcake","curiosity",
-  "delusion","destroyer","dumpling",
-  "fatality","finger-puppet","herbivore","hot-dog","invertebrate",
-  "keepsake","lambchop","lapdog","lowlander","marsupial","no-thanks","noodle",
+  "delusion","destroyer","disco-ring",dumpling",
+  "firstborn","finger-puppet","herbivore","hot-dog","invertebrate",
+  "keepsake","lambchop","lapdog","lasagna","lowlander","marsupial","no-thanks","noodle",
   "placeholder","pudding","round-of-applause",
   "sea-slug","shawarma","shrimp","snack","space-invader","spaghetti","stringworm",
   "thingamabob","torpedo","thumbs-up","tooth","yes-please"
