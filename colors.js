@@ -15,7 +15,7 @@ const ALL_COLORS = [
   { id: "obsidian", hex: "#000000" },
   { id: "slate", hex: "#5b5a71" },
   { id: "shark grey", hex: "#787ca2" },
-  { id: "pebble grey", hex: "#a2aac0" },
+  { id: "pebble", hex: "#a2aac0" },
   { id: "dove grey", hex: "#dbeefd" },
 
   { id: "chestnut", hex: "#90513e" },
