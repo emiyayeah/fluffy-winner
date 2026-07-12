@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "indigo",
   "murky water",
-  "slate",
-  "pebble",
-  "obsidian",
-  "charcoal",
-  "shark grey",
-  "dove grey",
+  "teal",
+  "cornflower blue",
+  "baby blue",
+  "indigo",
+  "steel blue
+  "sky blue",
+  "aquamarine",
 ];
 
 // Special permanent "erase" swatch.
