@@ -57,7 +57,7 @@ const LIVE_COLOR_IDS = [
   "cornflower blue",
   "baby blue",
   "indigo",
-  "steel blue
+  "steel blue",
   "sky blue",
   "aquamarine",
 ];
