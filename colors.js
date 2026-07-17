@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "murky water",
-  "teal",
-  "cornflower blue",
-  "baby blue",
-  "indigo",
-  "steel blue",
+  "apricot",
+  "vermillion",
+  "alien green",
+  "dusty rose",
+  "purple plum",
+  "thangerine",
   "sky blue",
-  "aquamarine",
+  "dove grey",
 ];
 
 // Special permanent "erase" swatch.
