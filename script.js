@@ -257,45 +257,162 @@ canvas.addEventListener("pointerleave", () => { painting = false; });
  **********************************************************************/
 
 function encodeMural() {
-  return JSON.stringify({
-    version: 2,
-    width: GRID_W,
-    height: GRID_H,
-    livePalette: LIVE_COLOR_IDS,
-    pixels: pixels
+  const encodedPixels = pixels.map(colorId => {
+    if (colorId === null) return "_";
+
+    const code = codeById.get(colorId);
+
+    if (!code) {
+      throw new Error(`No export code found for color: ${colorId}`);
+    }
+
+    return code;
   });
-}
 
-function decodeAndLoadMural(rawText) {
-  const data = JSON.parse(rawText);
+  let compressed = "";
+  let currentChar = encodedPixels[0];
+  let runLength = 1;
 
-  if (!data || typeof data !== "object") {
-    throw new Error("Code is not valid JSON.");
-  }
+  for (let i = 1; i < encodedPixels.length; i++) {
+    const char = encodedPixels[i];
 
-  if (data.width !== GRID_W || data.height !== GRID_H) {
-    throw new Error(`This code is for a ${data.width}×${data.height} mural, not ${GRID_W}×${GRID_H}.`);
-  }
+    if (char === currentChar) {
+      runLength++;
+    } else {
+      compressed += runLength > 1
+        ? `${runLength}${currentChar}`
+        : currentChar;
 
-  if (!Array.isArray(data.pixels) || data.pixels.length !== CELL_COUNT) {
-    throw new Error("Pixel data is missing or the wrong length.");
-  }
-
-  for (const colorId of data.pixels) {
-    if (colorId === null) continue;
-    if (colorId === ERASE_ID) continue;
-    if (!allById.has(colorId)) {
-      throw new Error(`Unknown color id found in code: ${colorId}`);
+      currentChar = char;
+      runLength = 1;
     }
   }
 
+  compressed += runLength > 1
+    ? `${runLength}${currentChar}`
+    : currentChar;
+
+  // No prefix or label.
+  return compressed;
+}
+
+
+function decodeAndLoadMural(rawText) {
+  const text = rawText.trim();
+
+  if (!text) {
+    throw new Error("Save code is empty.");
+  }
+
+  /********************************************************************
+   * OLD JSON FORMAT
+   ********************************************************************/
+
+  if (text.startsWith("{")) {
+    const data = JSON.parse(text);
+
+    if (!data || typeof data !== "object") {
+      throw new Error("Code is not valid.");
+    }
+
+    if (data.width !== GRID_W || data.height !== GRID_H) {
+      throw new Error(
+        `This code is for a ${data.width}×${data.height} mural, not ${GRID_W}×${GRID_H}.`
+      );
+    }
+
+    if (!Array.isArray(data.pixels) || data.pixels.length !== CELL_COUNT) {
+      throw new Error("Pixel data is missing or the wrong length.");
+    }
+
+    for (const colorId of data.pixels) {
+      if (colorId === null) continue;
+      if (colorId === ERASE_ID) continue;
+
+      if (!allById.has(colorId)) {
+        throw new Error(`Unknown color id found in code: ${colorId}`);
+      }
+    }
+
+    for (let i = 0; i < CELL_COUNT; i++) {
+      pixels[i] = data.pixels[i];
+    }
+
+    drawAll();
+    return;
+  }
+
+  /********************************************************************
+   * NEW COMPACT FORMAT
+   *
+   * _   = one blank cell
+   * A   = one cell of color A
+   * 4A  = four cells of color A
+   * 12_ = twelve blank cells
+   ********************************************************************/
+
+  const decodedPixels = [];
+  let i = 0;
+
+  while (i < text.length) {
+    let countText = "";
+
+    // Read run length, if there is one.
+    while (i < text.length && /\d/.test(text[i])) {
+      countText += text[i];
+      i++;
+    }
+
+    if (i >= text.length) {
+      throw new Error("Save code ended unexpectedly.");
+    }
+
+    const symbol = text[i];
+    i++;
+
+    const count = countText === ""
+      ? 1
+      : parseInt(countText, 10);
+
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error("Invalid run length in save code.");
+    }
+
+    let colorId;
+
+    if (symbol === "_") {
+      colorId = null;
+    } else {
+      colorId = idByCode.get(symbol);
+
+      if (!colorId) {
+        throw new Error(`Unknown color code: ${symbol}`);
+      }
+    }
+
+    for (let n = 0; n < count; n++) {
+      decodedPixels.push(colorId);
+
+      if (decodedPixels.length > CELL_COUNT) {
+        throw new Error(
+          `Save code contains more than ${CELL_COUNT} pixels.`
+        );
+      }
+    }
+  }
+
+  if (decodedPixels.length !== CELL_COUNT) {
+    throw new Error(
+      `This save code contains ${decodedPixels.length} pixels, but this mural requires ${CELL_COUNT}.`
+    );
+  }
+
   for (let i = 0; i < CELL_COUNT; i++) {
-    pixels[i] = data.pixels[i];
+    pixels[i] = decodedPixels[i];
   }
 
   drawAll();
 }
-
 /**********************************************************************
  * 10) BUTTONS
  **********************************************************************/
