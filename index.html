@@ -45,18 +45,23 @@
     <button id="toggleBonusBtn" type="button">show non-live colors</button>
   </div>
 
-  <!-- ACTION BUTTONS -->
-  <div class="row">
+<!-- ACTION BUTTONS -->
+<div class="row">
+  <div class="buttonStack">
     <button id="exportBtn" type="button">export png</button>
-    <button id="exportCodeBtn" type="button">export code</button>
-    <button id="loadCodeBtn" type="button">load code</button>
+    <button id="exportGridBtn" type="button">export gridded png</button>
   </div>
 
-  <div class="sectionHint">
-    <strong>export png</strong> saves an image. <br/>
-    <strong>export code</strong> copies a save code to your clipboard. <br/>
-    <strong>load code</strong> lets you paste a previous save code back into the painter.
-  </div>
+  <button id="exportCodeBtn" type="button">export code</button>
+  <button id="loadCodeBtn" type="button">load code</button>
+</div>
+
+<div class="sectionHint">
+  <strong>export png</strong> saves an image - no grid, tumblr ready. <br/>
+  <strong>export gridded png</strong> saves a gridded image for easier collaboration. <br/>
+  <strong>export code</strong> copies a save code to your clipboard. <br/>
+  <strong>load code</strong> lets you paste a previous save code back into the painter.
+</div>
 
   <button id="clearBtn" type="button">clear mural</button>
 
