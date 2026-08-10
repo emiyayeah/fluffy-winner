@@ -17,11 +17,6 @@ body {
   flex-wrap: wrap;
 }
 
-.buttonStack {
-  display: grid;
-  gap: 6px;
-}
-
 /* A simple vertical stack for palette sections */
 .paletteWrap {
   display: grid;
