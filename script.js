@@ -39,6 +39,7 @@ const bonusPaletteEl = document.getElementById("bonusPalette");
 
 const clearBtn = document.getElementById("clearBtn");
 const exportBtn = document.getElementById("exportBtn");
+const exportGridBtn = document.getElementById("exportGridBtn");
 const exportCodeBtn = document.getElementById("exportCodeBtn");
 const loadCodeBtn = document.getElementById("loadCodeBtn");
 const currentColorLabel = document.getElementById("currentColorLabel");
@@ -309,7 +310,7 @@ clearBtn.addEventListener("click", () => {
 });
 
 exportBtn.addEventListener("click", () => {
-  const exportScale = 20;
+  const exportScale = 48;
 
   const outW = GRID_W * exportScale;
   const outH = GRID_H * exportScale;
@@ -319,6 +320,8 @@ exportBtn.addEventListener("click", () => {
   exportCanvas.height = outH;
 
   const exportCtx = exportCanvas.getContext("2d");
+
+  exportCtx.imageSmoothingEnabled = false;
 
   exportCtx.fillStyle = "#ffffff";
   exportCtx.fillRect(0, 0, outW, outH);
@@ -332,6 +335,67 @@ exportBtn.addEventListener("click", () => {
     }
   }
 
+  const link = document.createElement("a");
+  link.download = randomName() + ".png";
+  link.href = exportCanvas.toDataURL("image/png");
+  link.click();
+});
+
+exportGridBtn.addEventListener("click", () => {
+  const exportScale = 20;
+
+  const outW = GRID_W * exportScale;
+  const outH = GRID_H * exportScale;
+
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = outW;
+  exportCanvas.height = outH;
+
+  const exportCtx = exportCanvas.getContext("2d");
+
+  // White background
+  exportCtx.fillStyle = "#ffffff";
+  exportCtx.fillRect(0, 0, outW, outH);
+
+  // Draw pixels
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      const idx = cellIndex(x, y);
+      const colorHex = colorIdToHex(pixels[idx]);
+
+      exportCtx.fillStyle = colorHex;
+      exportCtx.fillRect(
+        x * exportScale,
+        y * exportScale,
+        exportScale,
+        exportScale
+      );
+    }
+  }
+
+  // Draw grid lines to match the editor
+  exportCtx.save();
+  exportCtx.strokeStyle = "rgba(0,0,0,0.12)";
+  exportCtx.lineWidth = 1;
+
+  exportCtx.beginPath();
+
+  for (let x = 0; x <= GRID_W; x++) {
+    const px = x * exportScale + 0.5;
+    exportCtx.moveTo(px, 0);
+    exportCtx.lineTo(px, outH);
+  }
+
+  for (let y = 0; y <= GRID_H; y++) {
+    const py = y * exportScale + 0.5;
+    exportCtx.moveTo(0, py);
+    exportCtx.lineTo(outW, py);
+  }
+
+  exportCtx.stroke();
+  exportCtx.restore();
+
+  // Download with the same silly filename generator
   const link = document.createElement("a");
   link.download = randomName() + ".png";
   link.href = exportCanvas.toDataURL("image/png");
