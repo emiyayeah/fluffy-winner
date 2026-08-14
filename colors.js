@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "indigo",
-  "baby blue",
-  "murky water",
-  "obsidian",
-  "chestnut",
-  "teal",
-  "shark grey",
-  "mulberry",
+  "pebble",
+  "dove grey",
+  "slate",
+  "apricot",
+  "charcoal",
+  "purple plum",
+  "raspberry",
+  "steel blue",
 ];
 
 // Special permanent "erase" swatch.
