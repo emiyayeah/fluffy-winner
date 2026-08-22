@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "pebble",
-  "dove grey",
-  "slate",
-  "apricot",
-  "charcoal",
-  "purple plum",
-  "raspberry",
   "steel blue",
+  "apricot",
+  "aquamarine",
+  "vermillion",
+  "obsidian",
+  "purple plum",
+  "dusty rose",
+  "parmesan",
 ];
 
 // Special permanent "erase" swatch.
