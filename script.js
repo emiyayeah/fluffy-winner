@@ -99,6 +99,106 @@ function updateCurrentColorLabel() {
   }
 }
 
+
+/**********************************************************************
+ * PNG SAVE / SHARE HELPERS
+ * --------------------------------------------------------------------
+ * Desktop:
+ * - downloads the PNG normally
+ *
+ * Mobile:
+ * - opens the native share/save sheet
+ * - preserves the silly generated filename
+ **********************************************************************/
+
+function dataUrlToBlob(dataUrl) {
+  const parts = dataUrl.split(",");
+  const header = parts[0];
+  const base64 = parts[1];
+
+  const mimeMatch = header.match(/data:(.*?);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : "image/png";
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new Blob([bytes], { type: mime });
+}
+
+async function saveCanvasAsPng(exportCanvas) {
+  const filename = randomName() + ".png";
+
+  // Create the PNG.
+  const dataUrl = exportCanvas.toDataURL("image/png");
+  const blob = dataUrlToBlob(dataUrl);
+
+  // Detect phones/tablets.
+  const isMobileDevice =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  // On mobile, use the native share/save sheet when possible.
+  if (
+    isMobileDevice &&
+    navigator.share &&
+    typeof File !== "undefined"
+  ) {
+    const file = new File([blob], filename, {
+      type: "image/png"
+    });
+
+    let canShareFiles = true;
+
+    if (navigator.canShare) {
+      try {
+        canShareFiles = navigator.canShare({
+          files: [file]
+        });
+      } catch (err) {
+        canShareFiles = false;
+      }
+    }
+
+    if (canShareFiles) {
+      try {
+        await navigator.share({
+          files: [file]
+        });
+
+        return;
+      } catch (err) {
+        // Closing the share sheet is not an error.
+        if (err.name === "AbortError") return;
+
+        console.warn(
+          "Native sharing failed; falling back to download.",
+          err
+        );
+      }
+    }
+  }
+
+  // Desktop / fallback download.
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+
 /**********************************************************************
  * 6) PALETTE RENDERING
  **********************************************************************/
@@ -123,6 +223,7 @@ function createSwatchButton(swatch) {
 
 function updateSwatchSelectionUI() {
   const allSwatchButtons = document.querySelectorAll(".swatch");
+
   allSwatchButtons.forEach(btn => {
     const id = btn.dataset.colorId;
     btn.setAttribute("aria-pressed", String(id === selectedColorId));
@@ -137,6 +238,7 @@ function renderLivePalette() {
       id: c.id,
       hex: c.hex
     });
+
     swatch.dataset.colorId = c.id;
     livePaletteEl.appendChild(swatch);
   });
@@ -161,6 +263,7 @@ function renderBonusPalette() {
       id: c.id,
       hex: c.hex
     });
+
     swatch.dataset.colorId = c.id;
     bonusPaletteEl.appendChild(swatch);
   });
@@ -187,7 +290,13 @@ function drawPixelsOnly() {
       const colorHex = colorIdToHex(colorId);
 
       ctx.fillStyle = colorHex;
-      ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+      ctx.fillRect(
+        x * CELL_SIZE,
+        y * CELL_SIZE,
+        CELL_SIZE,
+        CELL_SIZE
+      );
     }
   }
 }
@@ -201,12 +310,14 @@ function drawGridLines() {
 
   for (let x = 0; x <= GRID_W; x++) {
     const px = x * CELL_SIZE + 0.5;
+
     ctx.moveTo(px, 0);
     ctx.lineTo(px, cssHeight);
   }
 
   for (let y = 0; y <= GRID_H; y++) {
     const py = y * CELL_SIZE + 0.5;
+
     ctx.moveTo(0, py);
     ctx.lineTo(cssWidth, py);
   }
@@ -225,17 +336,28 @@ function drawAll() {
  **********************************************************************/
 
 function setPixel(x, y, colorId) {
-  if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return;
-  pixels[cellIndex(x, y)] = (colorId === ERASE_ID) ? null : colorId;
+  if (
+    x < 0 ||
+    x >= GRID_W ||
+    y < 0 ||
+    y >= GRID_H
+  ) return;
+
+  pixels[cellIndex(x, y)] =
+    (colorId === ERASE_ID)
+      ? null
+      : colorId;
 }
 
 let painting = false;
 
 canvas.addEventListener("pointerdown", (evt) => {
   painting = true;
+
   canvas.setPointerCapture(evt.pointerId);
 
   const { x, y } = pointerToCell(evt);
+
   setPixel(x, y, selectedColorId);
   drawAll();
 });
@@ -244,13 +366,31 @@ canvas.addEventListener("pointermove", (evt) => {
   if (!painting) return;
 
   const { x, y } = pointerToCell(evt);
+
   setPixel(x, y, selectedColorId);
   drawAll();
 });
 
-canvas.addEventListener("pointerup", () => { painting = false; });
-canvas.addEventListener("pointercancel", () => { painting = false; });
-canvas.addEventListener("pointerleave", () => { painting = false; });
+canvas.addEventListener(
+  "pointerup",
+  () => {
+    painting = false;
+  }
+);
+
+canvas.addEventListener(
+  "pointercancel",
+  () => {
+    painting = false;
+  }
+);
+
+canvas.addEventListener(
+  "pointerleave",
+  () => {
+    painting = false;
+  }
+);
 
 /**********************************************************************
  * 9) SAVE / LOAD CODE
@@ -263,7 +403,9 @@ function encodeMural() {
     const code = codeById.get(colorId);
 
     if (!code) {
-      throw new Error(`No export code found for color: ${colorId}`);
+      throw new Error(
+        `No export code found for color: ${colorId}`
+      );
     }
 
     return code;
@@ -279,18 +421,20 @@ function encodeMural() {
     if (char === currentChar) {
       runLength++;
     } else {
-      compressed += runLength > 1
-        ? `${runLength}${currentChar}`
-        : currentChar;
+      compressed +=
+        runLength > 1
+          ? `${runLength}${currentChar}`
+          : currentChar;
 
       currentChar = char;
       runLength = 1;
     }
   }
 
-  compressed += runLength > 1
-    ? `${runLength}${currentChar}`
-    : currentChar;
+  compressed +=
+    runLength > 1
+      ? `${runLength}${currentChar}`
+      : currentChar;
 
   // No prefix or label.
   return compressed;
@@ -315,14 +459,22 @@ function decodeAndLoadMural(rawText) {
       throw new Error("Code is not valid.");
     }
 
-    if (data.width !== GRID_W || data.height !== GRID_H) {
+    if (
+      data.width !== GRID_W ||
+      data.height !== GRID_H
+    ) {
       throw new Error(
         `This code is for a ${data.width}×${data.height} mural, not ${GRID_W}×${GRID_H}.`
       );
     }
 
-    if (!Array.isArray(data.pixels) || data.pixels.length !== CELL_COUNT) {
-      throw new Error("Pixel data is missing or the wrong length.");
+    if (
+      !Array.isArray(data.pixels) ||
+      data.pixels.length !== CELL_COUNT
+    ) {
+      throw new Error(
+        "Pixel data is missing or the wrong length."
+      );
     }
 
     for (const colorId of data.pixels) {
@@ -330,7 +482,9 @@ function decodeAndLoadMural(rawText) {
       if (colorId === ERASE_ID) continue;
 
       if (!allById.has(colorId)) {
-        throw new Error(`Unknown color id found in code: ${colorId}`);
+        throw new Error(
+          `Unknown color id found in code: ${colorId}`
+        );
       }
     }
 
@@ -352,30 +506,42 @@ function decodeAndLoadMural(rawText) {
    ********************************************************************/
 
   const decodedPixels = [];
+
   let i = 0;
 
   while (i < text.length) {
     let countText = "";
 
     // Read run length, if there is one.
-    while (i < text.length && /\d/.test(text[i])) {
+    while (
+      i < text.length &&
+      /\d/.test(text[i])
+    ) {
       countText += text[i];
       i++;
     }
 
     if (i >= text.length) {
-      throw new Error("Save code ended unexpectedly.");
+      throw new Error(
+        "Save code ended unexpectedly."
+      );
     }
 
     const symbol = text[i];
     i++;
 
-    const count = countText === ""
-      ? 1
-      : parseInt(countText, 10);
+    const count =
+      countText === ""
+        ? 1
+        : parseInt(countText, 10);
 
-    if (!Number.isInteger(count) || count < 1) {
-      throw new Error("Invalid run length in save code.");
+    if (
+      !Number.isInteger(count) ||
+      count < 1
+    ) {
+      throw new Error(
+        "Invalid run length in save code."
+      );
     }
 
     let colorId;
@@ -386,14 +552,18 @@ function decodeAndLoadMural(rawText) {
       colorId = idByCode.get(symbol);
 
       if (!colorId) {
-        throw new Error(`Unknown color code: ${symbol}`);
+        throw new Error(
+          `Unknown color code: ${symbol}`
+        );
       }
     }
 
     for (let n = 0; n < count; n++) {
       decodedPixels.push(colorId);
 
-      if (decodedPixels.length > CELL_COUNT) {
+      if (
+        decodedPixels.length > CELL_COUNT
+      ) {
         throw new Error(
           `Save code contains more than ${CELL_COUNT} pixels.`
         );
@@ -401,7 +571,9 @@ function decodeAndLoadMural(rawText) {
     }
   }
 
-  if (decodedPixels.length !== CELL_COUNT) {
+  if (
+    decodedPixels.length !== CELL_COUNT
+  ) {
     throw new Error(
       `This save code contains ${decodedPixels.length} pixels, but this mural requires ${CELL_COUNT}.`
     );
@@ -413,74 +585,62 @@ function decodeAndLoadMural(rawText) {
 
   drawAll();
 }
+
 /**********************************************************************
  * 10) BUTTONS
  **********************************************************************/
 
 clearBtn.addEventListener("click", () => {
-  if (!confirm("start a new mural? this will erase the current one.")) return;
+  if (
+    !confirm(
+      "start a new mural? this will erase the current one."
+    )
+  ) return;
 
   for (let i = 0; i < CELL_COUNT; i++) {
     pixels[i] = null;
   }
+
   drawAll();
 });
 
-exportBtn.addEventListener("click", () => {
+
+/**********************************************************************
+ * EXPORT CLEAN PNG
+ * 1056 × 672
+ **********************************************************************/
+
+exportBtn.addEventListener("click", async () => {
   const exportScale = 48;
 
   const outW = GRID_W * exportScale;
   const outH = GRID_H * exportScale;
 
-  const exportCanvas = document.createElement("canvas");
+  const exportCanvas =
+    document.createElement("canvas");
+
   exportCanvas.width = outW;
   exportCanvas.height = outH;
 
-  const exportCtx = exportCanvas.getContext("2d");
+  const exportCtx =
+    exportCanvas.getContext("2d");
 
+  // Keep pixel edges crisp.
   exportCtx.imageSmoothingEnabled = false;
 
+  // White background.
   exportCtx.fillStyle = "#ffffff";
   exportCtx.fillRect(0, 0, outW, outH);
 
+  // Draw pixels without the grid.
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
       const idx = cellIndex(x, y);
-      const colorHex = colorIdToHex(pixels[idx]);
-      exportCtx.fillStyle = colorHex;
-      exportCtx.fillRect(x * exportScale, y * exportScale, exportScale, exportScale);
-    }
-  }
-
-  const link = document.createElement("a");
-  link.download = randomName() + ".png";
-  link.href = exportCanvas.toDataURL("image/png");
-  link.click();
-});
-
-exportGridBtn.addEventListener("click", () => {
-  const exportScale = 20;
-
-  const outW = GRID_W * exportScale;
-  const outH = GRID_H * exportScale;
-
-  const exportCanvas = document.createElement("canvas");
-  exportCanvas.width = outW;
-  exportCanvas.height = outH;
-
-  const exportCtx = exportCanvas.getContext("2d");
-
-  // White background
-  exportCtx.fillStyle = "#ffffff";
-  exportCtx.fillRect(0, 0, outW, outH);
-
-  // Draw pixels
-  for (let y = 0; y < GRID_H; y++) {
-    for (let x = 0; x < GRID_W; x++) {
-      const idx = cellIndex(x, y);
-      const colorHex = colorIdToHex(pixels[idx]);
+      const colorHex =
+        colorIdToHex(pixels[idx]);
 
       exportCtx.fillStyle = colorHex;
+
       exportCtx.fillRect(
         x * exportScale,
         y * exportScale,
@@ -490,68 +650,185 @@ exportGridBtn.addEventListener("click", () => {
     }
   }
 
-  // Draw grid lines to match the editor
-  exportCtx.save();
-  exportCtx.strokeStyle = "rgba(0,0,0,0.12)";
-  exportCtx.lineWidth = 1;
-
-  exportCtx.beginPath();
-
-  for (let x = 0; x <= GRID_W; x++) {
-    const px = x * exportScale + 0.5;
-    exportCtx.moveTo(px, 0);
-    exportCtx.lineTo(px, outH);
-  }
-
-  for (let y = 0; y <= GRID_H; y++) {
-    const py = y * exportScale + 0.5;
-    exportCtx.moveTo(0, py);
-    exportCtx.lineTo(outW, py);
-  }
-
-  exportCtx.stroke();
-  exportCtx.restore();
-
-  // Download with the same silly filename generator
-  const link = document.createElement("a");
-  link.download = randomName() + ".png";
-  link.href = exportCanvas.toDataURL("image/png");
-  link.click();
-});
-
-exportCodeBtn.addEventListener("click", async () => {
-  const code = encodeMural();
-
   try {
-    await navigator.clipboard.writeText(code);
-
-    const originalText = exportCodeBtn.textContent;
-    exportCodeBtn.textContent = "copied!";
-    setTimeout(() => {
-      exportCodeBtn.textContent = originalText;
-    }, 1200);
+    await saveCanvasAsPng(exportCanvas);
   } catch (err) {
-    console.error("Failed to copy mural code:", err);
-    alert("Copy failed. Your browser may not allow clipboard access here.");
+    console.error(
+      "Failed to export PNG:",
+      err
+    );
+
+    alert(
+      "Could not export the image."
+    );
   }
 });
+
+
+/**********************************************************************
+ * EXPORT GRIDDED PNG
+ * 440 × 280
+ **********************************************************************/
+
+exportGridBtn.addEventListener(
+  "click",
+  async () => {
+    const exportScale = 20;
+
+    const outW = GRID_W * exportScale;
+    const outH = GRID_H * exportScale;
+
+    const exportCanvas =
+      document.createElement("canvas");
+
+    exportCanvas.width = outW;
+    exportCanvas.height = outH;
+
+    const exportCtx =
+      exportCanvas.getContext("2d");
+
+    exportCtx.imageSmoothingEnabled = false;
+
+    // White background.
+    exportCtx.fillStyle = "#ffffff";
+    exportCtx.fillRect(0, 0, outW, outH);
+
+    // Draw pixels.
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const idx = cellIndex(x, y);
+        const colorHex =
+          colorIdToHex(pixels[idx]);
+
+        exportCtx.fillStyle = colorHex;
+
+        exportCtx.fillRect(
+          x * exportScale,
+          y * exportScale,
+          exportScale,
+          exportScale
+        );
+      }
+    }
+
+    // Draw grid lines to match the editor.
+    exportCtx.save();
+
+    exportCtx.strokeStyle =
+      "rgba(0,0,0,0.12)";
+
+    exportCtx.lineWidth = 1;
+
+    exportCtx.beginPath();
+
+    for (let x = 0; x <= GRID_W; x++) {
+      const px =
+        x * exportScale + 0.5;
+
+      exportCtx.moveTo(px, 0);
+      exportCtx.lineTo(px, outH);
+    }
+
+    for (let y = 0; y <= GRID_H; y++) {
+      const py =
+        y * exportScale + 0.5;
+
+      exportCtx.moveTo(0, py);
+      exportCtx.lineTo(outW, py);
+    }
+
+    exportCtx.stroke();
+    exportCtx.restore();
+
+    try {
+      await saveCanvasAsPng(exportCanvas);
+    } catch (err) {
+      console.error(
+        "Failed to export gridded PNG:",
+        err
+      );
+
+      alert(
+        "Could not export the gridded image."
+      );
+    }
+  }
+);
+
+
+/**********************************************************************
+ * EXPORT SAVE CODE
+ **********************************************************************/
+
+exportCodeBtn.addEventListener(
+  "click",
+  async () => {
+    const code = encodeMural();
+
+    try {
+      await navigator.clipboard.writeText(
+        code
+      );
+
+      const originalText =
+        exportCodeBtn.textContent;
+
+      exportCodeBtn.textContent =
+        "copied!";
+
+      setTimeout(() => {
+        exportCodeBtn.textContent =
+          originalText;
+      }, 1200);
+
+    } catch (err) {
+      console.error(
+        "Failed to copy mural code:",
+        err
+      );
+
+      alert(
+        "Copy failed. Your browser may not allow clipboard access here."
+      );
+    }
+  }
+);
+
+
+/**********************************************************************
+ * LOAD SAVE CODE
+ **********************************************************************/
 
 loadCodeBtn.addEventListener("click", () => {
-  const pasted = prompt("Paste a mural code here:");
+  const pasted = prompt(
+    "Paste a mural code here:"
+  );
 
   if (pasted === null) return;
 
   try {
     decodeAndLoadMural(pasted);
 
-    const originalText = loadCodeBtn.textContent;
-    loadCodeBtn.textContent = "loaded!";
+    const originalText =
+      loadCodeBtn.textContent;
+
+    loadCodeBtn.textContent =
+      "loaded!";
+
     setTimeout(() => {
-      loadCodeBtn.textContent = originalText;
+      loadCodeBtn.textContent =
+        originalText;
     }, 1200);
+
   } catch (err) {
-    console.error("Failed to load mural code:", err);
-    alert(`Could not load code: ${err.message}`);
+    console.error(
+      "Failed to load mural code:",
+      err
+    );
+
+    alert(
+      `Could not load code: ${err.message}`
+    );
   }
 });
 
