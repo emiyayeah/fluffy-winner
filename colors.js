@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "shark grey",
-  "thangerine",
-  "aquamarine",
-  "dove grey",
-  "honey mustard",
-  "indigo",
+  "steel blue",
+  "cornflower blue",
+  "sky blue",
   "teal",
-  "buttermilk",
+  "baby blue",
+  "indigo",
+  "murky water",
+  "aquamarine",
 ];
 
 // Special permanent "erase" swatch.
