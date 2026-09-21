@@ -52,14 +52,14 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "intestines pink",
   "vermillion",
-  "thangerine",
-  "peach",
-  "thistle",
-  "dusty rose",
   "apricot",
+  "thangerine",
+  "dusty rose",
+  "peach",
   "purple plum",
+  "thistle",
+  "intestines pink",
 ];
 
 // Special permanent "erase" swatch.
