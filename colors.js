@@ -56,10 +56,10 @@ const LIVE_COLOR_IDS = [
   "apricot",
   "thangerine",
   "dusty rose",
-  "peach",
+  "sky blue",
   "purple plum",
-  "thistle",
-  "intestines pink",
+  "dove grey",
+  "alien green",
 ];
 
 // Special permanent "erase" swatch.
