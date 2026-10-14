@@ -54,12 +54,12 @@ const ALL_COLORS = [
 const LIVE_COLOR_IDS = [
   "vermillion",
   "apricot",
-  "thangerine",
+  "obsidian",
   "dusty rose",
-  "sky blue",
+  "steel blue",
   "purple plum",
-  "dove grey",
-  "alien green",
+  "parmesan",
+  "aquamarine",
 ];
 
 // Special permanent "erase" swatch.
