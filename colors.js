@@ -52,12 +52,12 @@ const ALL_COLORS = [
 
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
-  "vermillion",
-  "apricot",
-  "obsidian",
+  "camel",
+  "intestines pink",
+  "salted caramel",
   "dusty rose",
-  "steel blue",
-  "purple plum",
+  "sky blue",
+  "peach",
   "parmesan",
   "aquamarine",
 ];
