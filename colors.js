@@ -55,7 +55,7 @@ const LIVE_COLOR_IDS = [
   "dusty rose",
   "peach",
   "aquamarine",
-  "skyblue",
+  "sky blue",
   "camel",
   "salted caramel",
   "intestines pink",
