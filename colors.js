@@ -53,13 +53,13 @@ const ALL_COLORS = [
 // Change these weekly to rotate the featured colors.
 const LIVE_COLOR_IDS = [
   "dusty rose",
-  "peach",
-  "aquamarine",
-  "sky blue",
-  "camel",
-  "salted caramel",
-  "intestines pink",
-  "parmesan",
+  "thangerine",
+  "alien green",
+  "vermillion",
+  "apricot",
+  "steel blue",
+  "purple plum",
+  "teal",
 ];
 
 // Special permanent "erase" swatch.
